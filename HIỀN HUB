@@ -1,0 +1,2302 @@
+-- HIENHUB V4.3+FULL
+-- Merged: V4.3 UI & features + V4.4 Fruit Tab (all buttons, sliders, logic)
+
+-- Services
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager")
+
+local player = Players.LocalPlayer
+local spawnRemote = nil
+pcall(function() spawnRemote = ReplicatedStorage:WaitForChild("Connections"):WaitForChild("Spawn") end)
+
+-- GUI Setup (V4.3)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HIENZ"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 500, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local Header = Instance.new("TextLabel", MainFrame)
+Header.Size = UDim2.new(1, -60, 0, 30)
+Header.Position = UDim2.new(0, 10, 0, 0)
+Header.BackgroundTransparency = 1
+Header.Text = "HIỀN TRÙM ZZZ"
+Header.Font = Enum.Font.GothamBold
+Header.TextSize = 18
+Header.TextColor3 = Color3.fromRGB(255,255,255)
+Header.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Time in this Server (Header Center)
+local ServerTimeLabel = Instance.new("TextLabel", Header)
+ServerTimeLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+ServerTimeLabel.Position = UDim2.new(0.5, 50, 0.5, 0) -- ชิดกลางแน่นอน
+ServerTimeLabel.Size = UDim2.new(0, 200, 1, 0)
+ServerTimeLabel.BackgroundTransparency = 1
+ServerTimeLabel.Font = Enum.Font.GothamBold
+ServerTimeLabel.TextSize = 14
+ServerTimeLabel.TextColor3 = Color3.fromRGB(255,255,255) -- เปลี่ยนเป็นขาว
+ServerTimeLabel.TextXAlignment = Enum.TextXAlignment.Center
+ServerTimeLabel.TextYAlignment = Enum.TextYAlignment.Center -- ให้อยู่ตรงกลางแนวตั้งด้วย
+ServerTimeLabel.Text = "Time: 00:00:00"
+
+-- Update Timer
+task.spawn(function()
+    while task.wait(1) do
+        if getgenv().ServerJoinTime then
+            local elapsed = os.time() - getgenv().ServerJoinTime
+            local h = math.floor(elapsed/3600)
+            local m = math.floor((elapsed%3600)/60)
+            local s = elapsed % 60
+            ServerTimeLabel.Text = string.format("Time in Server: %02d:%02d:%02d", h,m,s)
+        end
+    end
+end)
+
+local MinBtn = Instance.new("TextButton", MainFrame)
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -60, 0, 0)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "-"
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18
+CloseBtn.TextColor3 = Color3.fromRGB(255,100,100)
+
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Size = UDim2.new(0, 90, 1, -30)
+Sidebar.Position = UDim2.new(0, 0, 0, 30)
+Sidebar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Sidebar.BorderSizePixel = 0
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,8)
+
+local Content = Instance.new("ScrollingFrame", MainFrame)
+Content.Size = UDim2.new(1, -100, 1, -40)
+Content.Position = UDim2.new(0, 95, 0, 35)
+Content.BackgroundTransparency = 1
+Content.ScrollBarThickness = 6
+local layout = Instance.new("UIListLayout", Content)
+layout.Padding = UDim.new(0,6)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Minimize/Close
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    Content.Visible = not minimized
+    Sidebar.Visible = not minimized
+    MainFrame.Size = minimized and UDim2.new(0, 400, 0, 40) or UDim2.new(0, 500, 0, 400)
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Sidebar buttons
+local function CreateSidebarButton(text, yPos)
+    local Btn = Instance.new("TextButton", Sidebar)
+    Btn.Size = UDim2.new(1, -10, 0, 30)
+    Btn.Position = UDim2.new(0, 5, 0, yPos)
+    Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    Btn.Text = text
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 14
+    Btn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,6)
+    return Btn
+end
+
+local MainBtn      = CreateSidebarButton("Main", 10)
+local WeaponBtn    = CreateSidebarButton("Weapon", 50)
+local PlayerBtn    = CreateSidebarButton("Player", 90)
+local DevilFruitBtn= CreateSidebarButton("DevilFruit", 130)
+local MiscBtn      = CreateSidebarButton("Misc", 170)
+local DrinkBtn     = CreateSidebarButton("Drink", 210)
+local TeleportBtn  = CreateSidebarButton("Teleport", 250)
+local ServerBtn = CreateSidebarButton("Server", 290)
+
+-- Utility
+local function ClearContent()
+    for _,c in pairs(Content:GetChildren()) do
+        if not c:IsA("UIListLayout") then c:Destroy() end
+    end
+end
+
+-- Format helper
+local function formatVal(v)
+    if type(v) ~= "number" then return tostring(v) end
+    if v < 1 then
+        return string.format("%.2f", v)
+    else
+        return tostring(v)
+    end
+end
+
+-- Step Slider helper (copied from 4.2.2 / 4.3)
+local function CreateStepSlider(parent, yPos, steps, default, callback)
+    local Frame = Instance.new("Frame", parent)
+    Frame.Size = UDim2.new(1, -20, 0, 40)
+    Frame.Position = UDim2.new(0, 10, 0, yPos)
+    Frame.BackgroundTransparency = 1
+
+    local SliderBack = Instance.new("Frame", Frame)
+    SliderBack.Size = UDim2.new(1, -120, 0, 8)
+    SliderBack.Position = UDim2.new(0, 10, 0.5, -4)
+    SliderBack.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    SliderBack.BorderSizePixel = 0
+    Instance.new("UICorner", SliderBack).CornerRadius = UDim.new(0,4)
+
+    local Fill = Instance.new("Frame", SliderBack)
+    Fill.Size = UDim2.new(0, 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0,170,0)
+    Fill.BorderSizePixel = 0
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(0,4)
+
+    local Knob = Instance.new("Frame", SliderBack)
+    Knob.Size = UDim2.new(0, 12, 0, 12)
+    Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Knob.BorderSizePixel = 0
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
+
+    local ValueLabel = Instance.new("TextLabel", Frame)
+    ValueLabel.Size = UDim2.new(0, 100, 1, 0)
+    ValueLabel.Position = UDim2.new(1, -105, 0, 0)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = formatVal(default)
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextSize = 12
+    ValueLabel.TextColor3 = Color3.fromRGB(255,255,255)
+
+    local function setIndex(idx)
+        if idx < 1 then idx = 1 end
+        if idx > #steps then idx = #steps end
+        local rel = 0
+        if #steps > 1 then
+            rel = (idx-1)/(#steps-1)
+        end
+        Fill.Size = UDim2.new(rel, 0, 1, 0)
+        Knob.Position = UDim2.new(rel, -6, 0.5, -6)
+        ValueLabel.Text = formatVal(steps[idx])
+        callback(steps[idx], idx)
+    end
+
+    local startIdx = 1
+    for i,v in ipairs(steps) do if v == default then startIdx = i break end end
+    setIndex(startIdx)
+
+    local dragging = false
+    local function updateFromInput(inputPosX)
+        local rel = math.clamp((inputPosX - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+        local idx = math.floor(rel * (#steps-1) + 0.5) + 1
+        if idx < 1 then idx = 1 end
+        if idx > #steps then idx = #steps end
+        setIndex(idx)
+    end
+
+    Knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    SliderBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            updateFromInput(input.Position.X)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateFromInput(input.Position.X)
+        end
+    end)
+
+    return Frame
+end
+
+-- States (merged)
+local States = {
+    AutoClick = {Enabled=false, Delay=0.1},
+    AutoRespawn = {Enabled=false, Delay=2},
+    AutoEquip = {Enabled=false, Weapon=nil},
+    AntiAFK = {Enabled=false},
+    AutoTP = false,
+    AutoToSafeZone = false,
+    Theme = "Dark",
+    Misc = {
+        Noclip = false,
+        ClickTP = false,
+        HipHeightEnabled = false,
+        HipHeight = 2,
+        WalkSpeedEnabled = false,
+        WalkSpeed = 16,
+        JumpEnabled = false,
+        JumpPower = 50,
+        FlightEnabled = false,
+        FlightSpeed = 200,
+        HideNames = false
+    },
+    Fruit = { -- 👈 เพิ่ม block นี้เข้าไป
+        AutoBarrel = false,
+        BarrelDelay = 0.1
+    }
+}
+
+
+-- SafeZone creation (from 4.2.2)
+local safeZone = workspace:FindFirstChild("PrivateFarmZone")
+if not safeZone then
+    safeZone = Instance.new("Part")
+    safeZone.Size = Vector3.new(80, 2, 80)
+    safeZone.Position = Vector3.new(50000, 5000, 50000)
+    safeZone.Anchored = true
+    safeZone.Transparency = 0.3
+    safeZone.BrickColor = BrickColor.new("Bright green")
+    safeZone.Name = "PrivateFarmZone"
+    safeZone.Parent = workspace
+end
+local SafeZoneCFrame = CFrame.new(safeZone.Position + Vector3.new(0,5,0))
+
+-- Auto respawn helper (from 4.2.2)
+local function setupAutoRespawn(character)
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        if States.AutoRespawn.Enabled then
+            task.wait(States.AutoRespawn.Delay)
+            local ok, userData = pcall(function()
+                return workspace:WaitForChild("UserData"):WaitForChild("User_" .. player.UserId)
+            end)
+            if ok and userData then
+                local spawnNumber = userData:FindFirstChild("Data") and userData.Data:FindFirstChild("SpawnNumber")
+                if spawnNumber and spawnRemote then
+                    spawnRemote:FireServer(spawnNumber.Value)
+                else
+                end
+            else
+            end
+        end
+    end)
+end
+player.CharacterAdded:Connect(setupAutoRespawn)
+if player.Character then setupAutoRespawn(player.Character) end
+
+-- Global connections (to manage repeated connections)
+local flightConnection = nil
+local noclipConnection = nil
+local autoTPConnection = nil
+local autoToSafeZoneConnection = nil
+local posLabelRef = nil
+
+-- Mouse for ClickTP
+local mouse = player:GetMouse()
+
+-- =====================================================
+-- MAIN TAB (FULL)
+-- =====================================================
+local function LoadMainTab()
+    ClearContent()
+
+-----------------------------------------------------------------
+-- AUTO CLICK
+----------------------------------------------------------------
+local autoClickThread = nil
+
+-- ปุ่ม AutoClick
+local AutoClickBtn = Instance.new("TextButton", Content)
+AutoClickBtn.Size = UDim2.new(1, -20, 0, 30)
+AutoClickBtn.BackgroundColor3 = States.AutoClick.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+AutoClickBtn.Text = "AutoClick: "..(States.AutoClick.Enabled and "ON" or "OFF")
+AutoClickBtn.Font = Enum.Font.GothamBold
+AutoClickBtn.TextSize = 14
+AutoClickBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", AutoClickBtn).CornerRadius = UDim.new(0,6)
+
+AutoClickBtn.MouseButton1Click:Connect(function()
+    States.AutoClick.Enabled = not States.AutoClick.Enabled
+    AutoClickBtn.BackgroundColor3 = States.AutoClick.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    AutoClickBtn.Text = "AutoClick: "..(States.AutoClick.Enabled and "ON" or "OFF")
+
+    if States.AutoClick.Enabled then
+        -- ถ้ามี thread เดิมให้หยุดก่อน
+        if autoClickThread then
+            task.cancel(autoClickThread)
+            autoClickThread = nil
+        end
+        autoClickThread = task.spawn(function()
+            while States.AutoClick.Enabled do
+                pcall(function()
+                    VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                    task.wait(0.01)
+                    VirtualUser:Button1Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                end)
+                task.wait(States.AutoClick.Delay or 0.1)
+            end
+        end)
+    else
+        if autoClickThread then
+            task.cancel(autoClickThread)
+            autoClickThread = nil
+        end
+    end
+end)
+
+-- ✅ Slider สำหรับ AutoClick Delay
+CreateStepSlider(Content, 0, {0.01,0.05,0.1,0.2,0.5}, States.AutoClick.Delay or 0.1, function(v)
+    States.AutoClick.Delay = v
+end)
+
+    -----------------------------------------------------------------
+    -- AUTO RESPAWN
+    -----------------------------------------------------------------
+    local function StartAutoRespawn()
+        if autoRespawnConn then autoRespawnConn:Disconnect() end
+
+        autoRespawnConn = player.CharacterAdded:Connect(function(char)
+            local hum = char:WaitForChild("Humanoid", 5)
+            if hum then
+                hum.Died:Connect(function()
+                    if States.AutoRespawn.Enabled then
+                        task.wait(States.AutoRespawn.Delay or 3)
+                        pcall(function()
+                            local spawnEvent = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Spawn")
+                            if spawnEvent then
+                                spawnEvent:FireServer()
+                            else
+                                player:LoadCharacter()
+                            end
+                        end)
+                    end
+                end)
+            end
+        end)
+    end
+
+    local RespawnBtn = Instance.new("TextButton", Content)
+    RespawnBtn.Size = UDim2.new(1, -20, 0, 30)
+    RespawnBtn.BackgroundColor3 = States.AutoRespawn.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    RespawnBtn.Text = "AutoRespawn: "..(States.AutoRespawn.Enabled and "ON" or "OFF")
+    RespawnBtn.Font = Enum.Font.GothamBold
+    RespawnBtn.TextSize = 14
+    RespawnBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", RespawnBtn).CornerRadius = UDim.new(0,6)
+
+    RespawnBtn.MouseButton1Click:Connect(function()
+        States.AutoRespawn.Enabled = not States.AutoRespawn.Enabled
+        RespawnBtn.BackgroundColor3 = States.AutoRespawn.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        RespawnBtn.Text = "AutoRespawn: "..(States.AutoRespawn.Enabled and "ON" or "OFF")
+
+        if States.AutoRespawn.Enabled then
+            StartAutoRespawn()
+        end
+    end)
+
+    -- ปุ่ม Delay Respawn (วนค่า)
+    local respawnDelaySteps = {2,3,4,5}
+    local respawnDelayIndex = table.find(respawnDelaySteps, States.AutoRespawn.Delay) or 2
+    States.AutoRespawn.Delay = respawnDelaySteps[respawnDelayIndex]
+
+    local RespawnDelayBtn = Instance.new("TextButton", Content)
+    RespawnDelayBtn.Size = UDim2.new(1, -20, 0, 30)
+    RespawnDelayBtn.Text = "Respawn Delay: "..States.AutoRespawn.Delay.."s"
+    RespawnDelayBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+    RespawnDelayBtn.TextColor3 = Color3.new(1,1,1)
+    RespawnDelayBtn.Font = Enum.Font.GothamBold
+    RespawnDelayBtn.TextSize = 14
+    Instance.new("UICorner", RespawnDelayBtn).CornerRadius = UDim.new(0,6)
+
+    RespawnDelayBtn.MouseButton1Click:Connect(function()
+        respawnDelayIndex = respawnDelayIndex % #respawnDelaySteps + 1
+        States.AutoRespawn.Delay = respawnDelaySteps[respawnDelayIndex]
+        RespawnDelayBtn.Text = "Respawn Delay: "..States.AutoRespawn.Delay.."s"
+    end)
+
+    if States.AutoRespawn.Enabled then
+        StartAutoRespawn()
+    end
+
+    -----------------------------------------------------------------
+    -- ANTI AFK
+    -----------------------------------------------------------------
+    local AntiAFKBtn = Instance.new("TextButton", Content)
+    AntiAFKBtn.Size = UDim2.new(1, -20, 0, 30)
+    AntiAFKBtn.BackgroundColor3 = States.AntiAFK.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    AntiAFKBtn.Text = "AntiAFK: "..(States.AntiAFK.Enabled and "ON" or "OFF")
+    AntiAFKBtn.Font = Enum.Font.GothamBold
+    AntiAFKBtn.TextSize = 14
+    AntiAFKBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", AntiAFKBtn).CornerRadius = UDim.new(0,6)
+
+    AntiAFKBtn.MouseButton1Click:Connect(function()
+        States.AntiAFK.Enabled = not States.AntiAFK.Enabled
+        AntiAFKBtn.BackgroundColor3 = States.AntiAFK.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        AntiAFKBtn.Text = "AntiAFK: "..(States.AntiAFK.Enabled and "ON" or "OFF")
+
+        if States.AntiAFK.Enabled then
+            task.spawn(function()
+                while States.AntiAFK.Enabled do
+                    task.wait(600)
+                    pcall(function()
+                        VirtualUser:CaptureController()
+                        VirtualUser:ClickButton2(Vector2.new())
+                    end)
+                end
+            end)
+        end
+    end)
+
+    -----------------------------------------------------------------
+    -- AUTO TO SAFE ZONE
+    -----------------------------------------------------------------
+    local AutoSafeBtn = Instance.new("TextButton", Content)
+    AutoSafeBtn.Size = UDim2.new(1, -20, 0, 30)
+    AutoSafeBtn.BackgroundColor3 = States.AutoTP and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    AutoSafeBtn.Text = "Auto To Safe Zone (Hold): "..(States.AutoTP and "ON" or "OFF")
+    AutoSafeBtn.Font = Enum.Font.GothamBold
+    AutoSafeBtn.TextSize = 14
+    AutoSafeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", AutoSafeBtn).CornerRadius = UDim.new(0,6)
+
+    AutoSafeBtn.MouseButton1Click:Connect(function()
+        States.AutoTP = not States.AutoTP
+        AutoSafeBtn.BackgroundColor3 = States.AutoTP and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        AutoSafeBtn.Text = "Auto To Safe Zone (Hold): "..(States.AutoTP and "ON" or "OFF")
+
+        if States.AutoTP then
+            if autoTPConnection then autoTPConnection:Disconnect(); autoTPConnection = nil end
+            autoTPConnection = RunService.Heartbeat:Connect(function()
+                if not States.AutoTP then
+                    if autoTPConnection then autoTPConnection:Disconnect(); autoTPConnection = nil end
+                    return
+                end
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    pcall(function()
+                        player.Character.HumanoidRootPart.CFrame = SafeZoneCFrame
+                    end)
+                end
+            end)
+        else
+            if autoTPConnection then autoTPConnection:Disconnect(); autoTPConnection = nil end
+        end
+    end)
+
+    -----------------------------------------------------------------
+    -- TP TO SAFE ZONE (ครั้งเดียว)
+    -----------------------------------------------------------------
+    local Btn = Instance.new("TextButton", Content)
+    Btn.Size = UDim2.new(1, -20, 0, 36)
+    Btn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    Btn.Text = "TP to Safe Zone"
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 14
+    Btn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,6)
+    Btn.MouseButton1Click:Connect(function()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = SafeZoneCFrame
+        end
+    end)
+
+end
+
+-- Swords Tab (choose weapon to auto-equip)
+local function LoadSwordsTab()
+    ClearContent()
+-- AutoEquip
+    local EquipBtn = Instance.new("TextButton", Content)
+    EquipBtn.Size = UDim2.new(1, -20, 0, 30)
+    EquipBtn.BackgroundColor3 = States.AutoEquip.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    EquipBtn.Text = "AutoEquip Weapon: "..(States.AutoEquip.Enabled and "ON" or "OFF")
+    EquipBtn.Font = Enum.Font.GothamBold
+    EquipBtn.TextSize = 14
+    EquipBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", EquipBtn).CornerRadius = UDim.new(0,6)
+
+    EquipBtn.MouseButton1Click:Connect(function()
+        States.AutoEquip.Enabled = not States.AutoEquip.Enabled
+        EquipBtn.BackgroundColor3 = States.AutoEquip.Enabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        EquipBtn.Text = "AutoEquip Weapon: "..(States.AutoEquip.Enabled and "ON" or "OFF")
+        if States.AutoEquip.Enabled then
+            task.spawn(function()
+                while States.AutoEquip.Enabled do
+                    task.wait(1)
+                    if player.Character and player.Character:FindFirstChild("Humanoid") and States.AutoEquip.Weapon then
+                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack and humanoid then
+                            local tool = backpack:FindFirstChild(States.AutoEquip.Weapon)
+                            if tool and not humanoid:FindFirstChild(States.AutoEquip.Weapon) then
+                                humanoid:EquipTool(tool)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+
+    local ListFrame = Instance.new("ScrollingFrame", Content)
+    ListFrame.Size = UDim2.new(1, -20, 1, -20)
+    ListFrame.Position = UDim2.new(0, 0, 0, 0)
+    ListFrame.CanvasSize = UDim2.new(0,0,0,0)
+    ListFrame.ScrollBarThickness = 6
+    ListFrame.BackgroundTransparency = 1
+    local layout = Instance.new("UIListLayout", ListFrame)
+    layout.Padding = UDim.new(0,5)
+
+    local function RefreshList()
+        for _,v in pairs(ListFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        local backpack = player:FindFirstChild("Backpack")
+        if not backpack then return end
+        for _,tool in pairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                local Btn = Instance.new("TextButton", ListFrame)
+                Btn.Size = UDim2.new(1, -10, 0, 30)
+                Btn.Text = "Set AutoEquip: "..tool.Name
+                Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+                Btn.TextColor3 = Color3.fromRGB(255,255,255)
+                Btn.Font = Enum.Font.GothamBold
+                Btn.TextSize = 14
+                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,6)
+                Btn.MouseButton1Click:Connect(function()
+                    States.AutoEquip.Weapon = tool.Name
+                end)
+            end
+        end
+        local count = 0
+        for _,v in pairs(ListFrame:GetChildren()) do if v:IsA("TextButton") then count = count + 1 end end
+        ListFrame.CanvasSize = UDim2.new(0,0,0, math.max(1, count)*35)
+    end
+
+    RefreshList()
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        backpack.ChildAdded:Connect(RefreshList)
+        backpack.ChildRemoved:Connect(RefreshList)
+    else
+        player.ChildAdded:Connect(function(child)
+            if child.Name == "Backpack" then
+                child.ChildAdded:Connect(RefreshList)
+                child.ChildRemoved:Connect(RefreshList)
+                RefreshList()
+            end
+        end)
+    end
+
+end
+
+----------------------------------------------------------------
+-- PLAYER TAB (ESP + BOX + PLAYER LIST)
+----------------------------------------------------------------
+function LoadPlayerTab()
+    ClearContent()
+
+    local player = Players.LocalPlayer
+    local currentSpectate = nil
+
+    -----------------------------
+    -- ESP Config
+    -----------------------------
+    local espEnabled = false
+    local boxEspEnabled = false
+    local espSize = 12
+    local espConnections = {}
+
+    -- ฟังก์ชันอัปเดตขนาดทั้งหมด
+    local function updateAllESP()
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("Head") then
+                local gui = plr.Character.Head:FindFirstChild("ESP_Name")
+                if gui and gui:IsA("BillboardGui") then
+                    gui.Size = UDim2.new(0, espSize*10, 0, espSize*4)
+                    local label = gui:FindFirstChildOfClass("TextLabel")
+                    if label then
+                        label.TextSize = espSize
+                    end
+                end
+            end
+        end
+    end
+
+    -- ฟังก์ชันสร้าง Billboard
+    local function createBillboard(plr)
+        if not plr.Character then return end
+        if plr.Character:FindFirstChild("Head") and not plr.Character.Head:FindFirstChild("ESP_Name") then
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ESP_Name"
+            billboard.Size = UDim2.new(0, espSize*10, 0, espSize*4)
+            billboard.AlwaysOnTop = true
+            billboard.Adornee = plr.Character.Head
+            billboard.Parent = plr.Character.Head
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+
+            local text = Instance.new("TextLabel", billboard)
+            text.Size = UDim2.new(1,0,1,0)
+            text.BackgroundTransparency = 1
+            text.TextColor3 = Color3.new(1,1,1)
+            text.TextStrokeTransparency = 0
+            text.Font = Enum.Font.GothamBold
+            text.TextScaled = false
+            text.TextSize = espSize
+
+            task.spawn(function()
+                while billboard.Parent and espEnabled do
+                    if plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local hum = plr.Character:FindFirstChild("Humanoid")
+                        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                        local dist = (hrp.Position - player.Character.HumanoidRootPart.Position).Magnitude
+
+                        local hpPercent = hum.Health / hum.MaxHealth
+                        if hpPercent > 0.6 then
+                            text.TextColor3 = Color3.fromRGB(0,255,0)
+                        elseif hpPercent > 0.3 then
+                            text.TextColor3 = Color3.fromRGB(255,255,0)
+                        else
+                            text.TextColor3 = Color3.fromRGB(255,0,0)
+                        end
+
+                        text.Text = string.format("%s | %.0f", plr.Name, dist)
+                    end
+                    task.wait(0.2)
+                end
+                if billboard then billboard:Destroy() end
+            end)
+        end
+    end
+
+    local function enableESP()
+        espEnabled = true
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr ~= player then
+                createBillboard(plr)
+            end
+        end
+        espConnections["Added"] = Players.PlayerAdded:Connect(function(plr)
+            plr.CharacterAdded:Connect(function()
+                task.wait(1)
+                createBillboard(plr)
+            end)
+        end)
+    end
+
+    local function disableESP()
+        espEnabled = false
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("Head") then
+                local gui = plr.Character.Head:FindFirstChild("ESP_Name")
+                if gui then gui:Destroy() end
+            end
+        end
+        for _,con in pairs(espConnections) do
+            if con then con:Disconnect() end
+        end
+        espConnections = {}
+    end
+
+    local function enableBoxESP()
+        boxEspEnabled = true
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                if not plr.Character:FindFirstChild("BoxESP") then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "BoxESP"
+                    highlight.Adornee = plr.Character
+                    highlight.FillTransparency = 1
+                    highlight.OutlineColor = Color3.fromRGB(0,255,0)
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = plr.Character
+                end
+            end
+            plr.CharacterAdded:Connect(function(char)
+                task.wait(1)
+                if not char:FindFirstChild("BoxESP") then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "BoxESP"
+                    highlight.Adornee = char
+                    highlight.FillTransparency = 1
+                    highlight.OutlineColor = Color3.fromRGB(0,255,0)
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = char
+                end
+            end)
+        end
+    end
+
+    local function disableBoxESP()
+        boxEspEnabled = false
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("BoxESP") then
+                plr.Character.BoxESP:Destroy()
+            end
+        end
+    end
+
+    -----------------------------
+    -- ปุ่ม UI ESP
+    -----------------------------
+    local espBtn = Instance.new("TextButton", Content)
+    espBtn.Size = UDim2.new(1, -20, 0, 30)
+    espBtn.Text = "ESP Players: OFF"
+    espBtn.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    espBtn.TextColor3 = Color3.new(1,1,1)
+    espBtn.Font = Enum.Font.GothamBold
+    espBtn.TextSize = 14
+    Instance.new("UICorner", espBtn).CornerRadius = UDim.new(0,6)
+
+    espBtn.MouseButton1Click:Connect(function()
+        espEnabled = not espEnabled
+        espBtn.Text = "ESP Players: " .. (espEnabled and "ON" or "OFF")
+        espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        if espEnabled then enableESP() else disableESP() end
+    end)
+
+    local minusBtn = Instance.new("TextButton", Content)
+    minusBtn.Size = UDim2.new(1, -20, 0, 30)
+    minusBtn.Text = "- ESP Size"
+    minusBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+    minusBtn.TextColor3 = Color3.new(1,1,1)
+    minusBtn.Font = Enum.Font.GothamBold
+    minusBtn.TextSize = 14
+    Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0,6)
+
+    minusBtn.MouseButton1Click:Connect(function()
+        espSize = math.max(8, espSize - 2)
+        updateAllESP()
+    end)
+
+    local plusBtn = Instance.new("TextButton", Content)
+    plusBtn.Size = UDim2.new(1, -20, 0, 30)
+    plusBtn.Text = "+ ESP Size"
+    plusBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+    plusBtn.TextColor3 = Color3.new(1,1,1)
+    plusBtn.Font = Enum.Font.GothamBold
+    plusBtn.TextSize = 14
+    Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0,6)
+
+    plusBtn.MouseButton1Click:Connect(function()
+        espSize = math.min(30, espSize + 2)
+        updateAllESP()
+    end)
+
+    local boxEspBtn = Instance.new("TextButton", Content)
+    boxEspBtn.Size = UDim2.new(1, -20, 0, 30)
+    boxEspBtn.Text = "Box ESP: OFF"
+    boxEspBtn.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    boxEspBtn.TextColor3 = Color3.new(1,1,1)
+    boxEspBtn.Font = Enum.Font.GothamBold
+    boxEspBtn.TextSize = 14
+    Instance.new("UICorner", boxEspBtn).CornerRadius = UDim.new(0,6)
+
+    boxEspBtn.MouseButton1Click:Connect(function()
+        boxEspEnabled = not boxEspEnabled
+        boxEspBtn.Text = "Box ESP: " .. (boxEspEnabled and "ON" or "OFF")
+        boxEspBtn.BackgroundColor3 = boxEspEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        if boxEspEnabled then enableBoxESP() else disableBoxESP() end
+    end)
+
+    -----------------------------
+    -- รายชื่อผู้เล่น + ปุ่ม Spectate / Teleport
+    -----------------------------
+    local playerList = Instance.new("ScrollingFrame", Content)
+    playerList.Size = UDim2.new(1, -10, 1, -200)
+    playerList.Position = UDim2.new(0,5,0,190)
+    playerList.CanvasSize = UDim2.new(0,0,0,0)
+    playerList.ScrollBarThickness = 6
+    playerList.BackgroundTransparency = 1
+    playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+    local layout = Instance.new("UIListLayout", playerList)
+    layout.Padding = UDim.new(0,5)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local function createPlayerButton(plr)
+        local frame = Instance.new("Frame", playerList)
+        frame.Size = UDim2.new(1, -10, 0, 40)
+        frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+        frame.BorderSizePixel = 0
+        frame.Name = plr.Name
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+        local nameLabel = Instance.new("TextLabel", frame)
+        nameLabel.Size = UDim2.new(0.5,0,1,0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = plr.Name
+        nameLabel.TextColor3 = Color3.new(1,1,1)
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextScaled = false   -- ปิด auto scale
+        nameLabel.TextSize = 18        -- ✅ กำหนดขนาดฟอนต์
+
+        -- ปุ่ม Spectate
+        local spectateBtn = Instance.new("TextButton", frame)
+        spectateBtn.Size = UDim2.new(0.22,0,1,0)
+        spectateBtn.Position = UDim2.new(0.55,0,0,0)
+        spectateBtn.Text = "Spectate"
+        spectateBtn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+        spectateBtn.TextColor3 = Color3.new(1,1,1)
+        spectateBtn.Font = Enum.Font.GothamBold
+        spectateBtn.TextScaled = true
+        Instance.new("UICorner", spectateBtn).CornerRadius = UDim.new(0,6)
+
+        -- ปุ่ม Teleport
+        local tpBtn = Instance.new("TextButton", frame)
+        tpBtn.Size = UDim2.new(0.22,0,1,0)
+        tpBtn.Position = UDim2.new(0.78,0,0,0)
+        tpBtn.Text = "Teleport"
+        tpBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
+        tpBtn.TextColor3 = Color3.new(1,1,1)
+        tpBtn.Font = Enum.Font.GothamBold
+        tpBtn.TextScaled = true
+        Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0,6)
+
+        spectateBtn.MouseButton1Click:Connect(function()
+            if currentSpectate == plr then
+                currentSpectate = nil
+                if player.Character and player.Character:FindFirstChild("Humanoid") then
+                    workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
+                end
+                spectateBtn.Text = "Spectate"
+                spectateBtn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+            else
+                currentSpectate = plr
+                if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                    workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
+                end
+                spectateBtn.Text = "Unspectate"
+                spectateBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+            end
+        end)
+
+        tpBtn.MouseButton1Click:Connect(function()
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    player.Character.HumanoidRootPart.CFrame = plr.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+                end
+            end
+        end)
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player then
+            createPlayerButton(plr)
+        end
+    end
+    Players.PlayerAdded:Connect(function(plr)
+        if plr ~= player then
+            createPlayerButton(plr)
+        end
+    end)
+    Players.PlayerRemoving:Connect(function(plr)
+        local btn = playerList:FindFirstChild(plr.Name)
+        if btn then btn:Destroy() end
+    end)
+
+end
+
+
+
+----------------------------------------------------------------
+-- DEVIL FRUIT TAB (Spectate + Teleport + ESP + Sorted A-Z)
+----------------------------------------------------------------
+function LoadDevilFruitTab()
+    ClearContent()
+    local fruitEspEnabled = false
+    local fruitEspConnections = {}
+    local currentSpectate = nil
+
+    -----------------------------------------------------
+    -- ฟังก์ชันสร้าง Billboard สำหรับผล
+    -----------------------------------------------------
+    local function createFruitESP(fruit)
+        if not fruit:IsDescendantOf(workspace) then return end
+        if fruit:FindFirstChild("FruitESP") then return end
+
+        local target = fruit:FindFirstChild("Handle") or fruit.PrimaryPart or (fruit:IsA("BasePart") and fruit)
+        if not target then return end
+
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "FruitESP"
+        billboard.Size = UDim2.new(0,200,0,50)
+        billboard.AlwaysOnTop = true
+        billboard.Adornee = target
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.Parent = fruit
+
+        local label = Instance.new("TextLabel", billboard)
+        label.Size = UDim2.new(1,0,1,0)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255,255,0)
+        label.TextStrokeTransparency = 0
+        label.Font = Enum.Font.GothamBold
+        label.TextScaled = false
+        label.TextSize = 14
+
+        task.spawn(function()
+            while billboard.Parent and fruitEspEnabled do
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and target then
+                    local dist = (target.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    label.Text = string.format("%s | %.0f", fruit.Name, dist)
+                end
+                task.wait(0.3)
+            end
+            if billboard then billboard:Destroy() end
+        end)
+    end
+
+    -----------------------------------------------------
+    -- เปิด/ปิด ESP
+    -----------------------------------------------------
+    local function enableFruitESP()
+        fruitEspEnabled = true
+        for _, obj in pairs(workspace:GetChildren()) do
+            if string.find(obj.Name, "Fruit") then
+                createFruitESP(obj)
+            end
+        end
+        fruitEspConnections["Added"] = workspace.ChildAdded:Connect(function(obj)
+            if fruitEspEnabled and string.find(obj.Name, "Fruit") then
+                task.wait(0.5)
+                createFruitESP(obj)
+            end
+        end)
+    end
+
+    local function disableFruitESP()
+        fruitEspEnabled = false
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:FindFirstChild("FruitESP") then
+                obj.FruitESP:Destroy()
+            end
+        end
+        for _,con in pairs(fruitEspConnections) do
+            if con then con:Disconnect() end
+        end
+        fruitEspConnections = {}
+    end
+
+    -----------------------------------------------------
+    -- ปุ่ม ESP Fruits (บนสุด)
+    -----------------------------------------------------
+    local fruitEspBtn = Instance.new("TextButton", Content)
+    fruitEspBtn.Size = UDim2.new(1, -20, 0, 30)
+    fruitEspBtn.Text = "ESP Fruits: OFF"
+    fruitEspBtn.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    fruitEspBtn.TextColor3 = Color3.new(1,1,1)
+    fruitEspBtn.Font = Enum.Font.GothamBold
+    fruitEspBtn.TextSize = 14
+    Instance.new("UICorner", fruitEspBtn).CornerRadius = UDim.new(0,6)
+
+    fruitEspBtn.MouseButton1Click:Connect(function()
+        fruitEspEnabled = not fruitEspEnabled
+        fruitEspBtn.Text = "ESP Fruits: " .. (fruitEspEnabled and "ON" or "OFF")
+        fruitEspBtn.BackgroundColor3 = fruitEspEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        if fruitEspEnabled then enableFruitESP() else disableFruitESP() end
+    end)
+
+	-----------------------------------------------------
+-- Auto Claim Sam (UI + Logic)
+-----------------------------------------------------
+local autoClaimSamThread = nil
+
+local function StartAutoClaimSam()
+    if autoClaimSamThread then return end
+    autoClaimSamThread = task.spawn(function()
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local RemoteContainer = ReplicatedStorage:FindFirstChild("Connections")
+        if not RemoteContainer then
+            warn("❌ ไม่พบ ReplicatedStorage.Connections")
+            return
+        end
+        local ClaimRemote = RemoteContainer:FindFirstChild("Claim_Sam")
+        if not ClaimRemote then
+            warn("❌ ไม่พบ Remote 'Claim_Sam'")
+            return
+        end
+
+        while States.Fruit.AutoClaimSam do
+            pcall(function()
+                ClaimRemote:FireServer("Claim1") -- 🔑 ปรับ arg ตรงนี้ให้ตรงกับที่ sniff เจอ
+            end)
+            task.wait(States.Fruit.SamDelay or 1)
+        end
+        autoClaimSamThread = nil
+    end)
+end
+
+local autoClaimSamBtn = Instance.new("TextButton", Content)
+autoClaimSamBtn.Size = UDim2.new(1, -20, 0, 30)
+autoClaimSamBtn.Text = "Auto Claim Sam: " .. (States.Fruit.AutoClaimSam and "ON" or "OFF")
+autoClaimSamBtn.BackgroundColor3 = States.Fruit.AutoClaimSam and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+autoClaimSamBtn.TextColor3 = Color3.new(1,1,1)
+autoClaimSamBtn.Font = Enum.Font.GothamBold
+autoClaimSamBtn.TextSize = 14
+Instance.new("UICorner", autoClaimSamBtn).CornerRadius = UDim.new(0,6)
+
+autoClaimSamBtn.MouseButton1Click:Connect(function()
+    States.Fruit.AutoClaimSam = not States.Fruit.AutoClaimSam
+    autoClaimSamBtn.Text = "Auto Claim Sam: " .. (States.Fruit.AutoClaimSam and "ON" or "OFF")
+    autoClaimSamBtn.BackgroundColor3 = States.Fruit.AutoClaimSam and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    if States.Fruit.AutoClaimSam then
+        StartAutoClaimSam()
+    end
+end)
+
+
+    -----------------------------------------------------
+    -- รายชื่อผล + ปุ่ม Spectate / Teleport
+    -----------------------------------------------------
+    local fruitList = Instance.new("ScrollingFrame", Content)
+    fruitList.Size = UDim2.new(1, -10, 1, -50)
+    fruitList.Position = UDim2.new(0,5,0,40)
+    fruitList.CanvasSize = UDim2.new(0,0,0,0)
+    fruitList.ScrollBarThickness = 6
+    fruitList.BackgroundTransparency = 1
+    fruitList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+    local layout = Instance.new("UIListLayout", fruitList)
+    layout.Padding = UDim.new(0,5)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local function getFruitCFrame(fruit)
+        if fruit:IsA("BasePart") then
+            return fruit.CFrame
+        elseif fruit:FindFirstChild("Handle") then
+            return fruit.Handle.CFrame
+        elseif fruit.PrimaryPart then
+            return fruit.PrimaryPart.CFrame
+        end
+        return nil
+    end
+
+    local function stopSpectate()
+        currentSpectate = nil
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
+        end
+    end
+
+    local function startSpectate(fruit)
+        currentSpectate = fruit
+        local target = fruit:FindFirstChild("Handle") or fruit.PrimaryPart or (fruit:IsA("BasePart") and fruit)
+        if target then
+            workspace.CurrentCamera.CameraSubject = target
+        end
+    end
+
+    local function createFruitButton(fruit)
+        local frame = Instance.new("Frame", fruitList)
+        frame.Size = UDim2.new(1, -10, 0, 30)
+        frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+        frame.BorderSizePixel = 0
+        frame.Name = fruit.Name
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+        local nameLabel = Instance.new("TextLabel", frame)
+        nameLabel.Size = UDim2.new(0.5,0,1,0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = fruit.Name
+        nameLabel.TextColor3 = Color3.new(1,1,1)
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextScaled = false
+        nameLabel.TextSize = 18
+
+        local spectateBtn = Instance.new("TextButton", frame)
+        spectateBtn.Size = UDim2.new(0.22,0,1,0)
+        spectateBtn.Position = UDim2.new(0.55,0,0,0)
+        spectateBtn.Text = "Spectate"
+        spectateBtn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+        spectateBtn.TextColor3 = Color3.new(1,1,1)
+        spectateBtn.Font = Enum.Font.GothamBold
+        spectateBtn.TextScaled = true
+        Instance.new("UICorner", spectateBtn).CornerRadius = UDim.new(0,6)
+
+        spectateBtn.MouseButton1Click:Connect(function()
+            if currentSpectate == fruit then
+                stopSpectate()
+                spectateBtn.Text = "Spectate"
+                spectateBtn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+            else
+                startSpectate(fruit)
+                spectateBtn.Text = "Unspectate"
+                spectateBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+            end
+        end)
+
+        local tpBtn = Instance.new("TextButton", frame)
+        tpBtn.Size = UDim2.new(0.22,0,1,0)
+        tpBtn.Position = UDim2.new(0.78,0,0,0)
+        tpBtn.Text = "Teleport"
+        tpBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
+        tpBtn.TextColor3 = Color3.new(1,1,1)
+        tpBtn.Font = Enum.Font.GothamBold
+        tpBtn.TextScaled = true
+        Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0,6)
+
+        tpBtn.MouseButton1Click:Connect(function()
+            local cf = getFruitCFrame(fruit)
+            if cf and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = cf + Vector3.new(0,5,0)
+            end
+        end)
+    end
+
+    -----------------------------------------------------
+    -- ฟังก์ชัน Refresh เรียงผล A-Z
+    -----------------------------------------------------
+    local function RefreshFruitList()
+        for _, child in ipairs(fruitList:GetChildren()) do
+            if child:IsA("Frame") then child:Destroy() end
+        end
+
+        local fruits = {}
+        for _, obj in pairs(workspace:GetChildren()) do
+            if string.find(obj.Name, "Fruit") then
+                table.insert(fruits, obj)
+            end
+        end
+
+        table.sort(fruits, function(a,b) return a.Name:lower() < b.Name:lower() end)
+
+        for _, fruit in ipairs(fruits) do
+            createFruitButton(fruit)
+        end
+    end
+
+    RefreshFruitList()
+
+    workspace.ChildAdded:Connect(function(obj)
+        if string.find(obj.Name, "Fruit") then
+            task.wait(0.2)
+            RefreshFruitList()
+        end
+    end)
+    workspace.ChildRemoved:Connect(function(obj)
+        if string.find(obj.Name, "Fruit") then
+            task.wait(0.1)
+            RefreshFruitList()
+        end
+    end)
+
+end
+
+
+----------------------------------------------------------------
+-- SERVER TAB (FULL FIXED with Save Settings + Hide UI)
+----------------------------------------------------------------
+
+-- ✅ Global UI Toggle Key (RightAlt by default)
+if not getgenv().UIKey then
+    getgenv().UIKey = Enum.KeyCode.RightAlt
+end
+
+-- ✅ Bind toggle UI (ป้องกันซ้ำ)
+if not getgenv().UIBinded then
+    getgenv().UIBinded = true
+    game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == getgenv().UIKey then
+            if MainFrame then
+                MainFrame.Visible = not MainFrame.Visible
+            end
+        end
+    end)
+end
+
+-- ✅ เก็บเวลาเข้าเซิร์ฟครั้งแรก
+if not getgenv().ServerJoinTime then
+    getgenv().ServerJoinTime = os.time()
+end
+
+-- ✅ ถ้ามี SavedStates (ตอน Rejoin/Hop) โหลดกลับมา
+if getgenv().SavedStates then
+    States = getgenv().SavedStates
+end
+
+local function LoadServerTab()
+    ClearContent()
+
+    ----------------------------------------------------------------
+    -- Label แสดงข้อมูล
+    ----------------------------------------------------------------
+    local infoLabel = Instance.new("TextLabel", Content)
+    infoLabel.Size = UDim2.new(1, -20, 0, 40)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.TextColor3 = Color3.new(1,1,1)
+    infoLabel.Font = Enum.Font.GothamBold
+    infoLabel.TextSize = 14
+    infoLabel.Text = "Loading..."
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+    task.spawn(function()
+        while task.wait(1) do
+            infoLabel.Text =
+                "Rejoin Count: "..tostring(getgenv().RejoinCount or 0)..
+                "\nHop Count: "..tostring(getgenv().HopCount or 0)
+        end
+    end)
+
+    ----------------------------------------------------------------
+    -- ฟังก์ชันช่วยบันทึกค่าและเตรียม queue_on_teleport
+    ----------------------------------------------------------------
+    local function teleportWithSave(callback)
+        if getgenv().SaveSettings then
+            local HttpService = game:GetService("HttpService")
+            getgenv().SavedStates = States
+            getgenv().SavedStatesJSON = HttpService:JSONEncode(States)
+        else
+            getgenv().SavedStates = nil
+            getgenv().SavedStatesJSON = nil
+        end
+
+        local savedStr = getgenv().SavedStatesJSON and
+            (string.format("game:GetService('HttpService'):JSONDecode([[%s]])", getgenv().SavedStatesJSON))
+            or "nil"
+
+        queue_on_teleport([[
+            getgenv().RejoinCount = ]]..(getgenv().RejoinCount or 0)..[[;
+            getgenv().HopCount = ]]..(getgenv().HopCount or 0)..[[;
+            getgenv().UIKey = Enum.KeyCode.]]..getgenv().UIKey.Name..[[;
+            getgenv().ServerJoinTime = os.time();
+            getgenv().SavedStates = ]]..savedStr..[[
+
+           loadstring(game:HttpGet("https://raw.githubusercontent.com/Mashirino/GPTHUB-V1.1/refs/heads/main/GPT%20HUB%20FINAL.lua"))()
+
+            if getgenv().SavedStates then
+                States = getgenv().SavedStates
+            end
+            MainFrame.Visible = true
+        ]])
+
+        callback()
+    end
+
+    ----------------------------------------------------------------
+    -- REJOIN BUTTON
+    ----------------------------------------------------------------
+    local rejoinBtn = Instance.new("TextButton", Content)
+    rejoinBtn.Size = UDim2.new(1, -20, 0, 30)
+    rejoinBtn.Position = UDim2.new(0,0,0,50)
+    rejoinBtn.Text = "Rejoin Server"
+    rejoinBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    rejoinBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    rejoinBtn.Font = Enum.Font.GothamBold
+    rejoinBtn.TextSize = 14
+    Instance.new("UICorner", rejoinBtn).CornerRadius = UDim.new(0,6)
+
+    rejoinBtn.MouseButton1Click:Connect(function()
+        getgenv().RejoinCount = (getgenv().RejoinCount or 0) + 1
+        teleportWithSave(function()
+            game:GetService("TeleportService"):TeleportToPlaceInstance(
+                game.PlaceId, game.JobId, game.Players.LocalPlayer
+            )
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- SERVER HOP BUTTON
+    ----------------------------------------------------------------
+    local hopBtn = rejoinBtn:Clone()
+    hopBtn.Parent = Content
+    hopBtn.Position = UDim2.new(0,0,0,90)
+    hopBtn.Text = "Server Hop"
+
+    hopBtn.MouseButton1Click:Connect(function()
+        getgenv().HopCount = (getgenv().HopCount or 0) + 1
+        teleportWithSave(function()
+            local HttpService = game:GetService("HttpService")
+            local servers = HttpService:JSONDecode(game:HttpGet(
+                "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+            ))
+
+            for _,srv in ipairs(servers.data) do
+                if srv.id ~= game.JobId and srv.playing < srv.maxPlayers then
+                    game:GetService("TeleportService"):TeleportToPlaceInstance(
+                        game.PlaceId, srv.id, game.Players.LocalPlayer
+                    )
+                    break
+                end
+            end
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- HIDE UI TOGGLE KEY BUTTON
+    ----------------------------------------------------------------
+    local hideKeyBtn = rejoinBtn:Clone()
+    hideKeyBtn.Parent = Content
+    hideKeyBtn.Position = UDim2.new(0,0,0,130)
+    hideKeyBtn.Text = "Hide UI Key (Now: "..(getgenv().UIKey and getgenv().UIKey.Name or "RightAlt")..")"
+
+    hideKeyBtn.MouseButton1Click:Connect(function()
+        hideKeyBtn.Text = "Press a key..."
+        local conn; conn = game:GetService("UserInputService").InputBegan:Connect(function(input,gp)
+            if gp then return end
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                getgenv().UIKey = input.KeyCode
+                hideKeyBtn.Text = "Hide UI Key (Now: "..getgenv().UIKey.Name..")"
+                conn:Disconnect()
+            end
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- SAVE SETTINGS BUTTON
+    ----------------------------------------------------------------
+    local saveBtn = rejoinBtn:Clone()
+    saveBtn.Parent = Content
+    saveBtn.Position = UDim2.new(0,0,0,170)
+    saveBtn.Text = "Save Settings: " .. (getgenv().SaveSettings and "ON" or "OFF")
+
+    saveBtn.MouseButton1Click:Connect(function()
+        getgenv().SaveSettings = not getgenv().SaveSettings
+        saveBtn.Text = "Save Settings: " .. (getgenv().SaveSettings and "ON" or "OFF")
+    end)
+
+    -- ✅ Label อธิบายใต้ปุ่ม Save Settings (2 บรรทัด)
+    local saveInfo1 = Instance.new("TextLabel", Content)
+    saveInfo1.Size = UDim2.new(1, -20, 0, 20)
+    saveInfo1.Position = UDim2.new(0,0,0,210)
+    saveInfo1.BackgroundTransparency = 1
+    saveInfo1.TextColor3 = Color3.fromRGB(200,200,200)
+    saveInfo1.Font = Enum.Font.Gotham
+    saveInfo1.TextSize = 12
+    saveInfo1.TextWrapped = true
+    saveInfo1.Text = "(Enable to auto-save all UI settings when activated)"
+
+    local saveInfo2 = Instance.new("TextLabel", Content)
+    saveInfo2.Size = UDim2.new(1, -20, 0, 20)
+    saveInfo2.Position = UDim2.new(0,0,0,230)
+    saveInfo2.BackgroundTransparency = 1
+    saveInfo2.TextColor3 = Color3.fromRGB(200,200,200)
+    saveInfo2.Font = Enum.Font.Gotham
+    saveInfo2.TextSize = 12
+    saveInfo2.TextWrapped = true
+    saveInfo2.Text = "(Takes effect when you Rejoin/Hop server)"
+
+end
+
+-- ===================== MISC TAB (FULL) ======================
+local function LoadMiscTab()
+    ClearContent()
+
+    ----------------------------------------------------------------
+    -- AUTO CHEST (FAST MODE)
+    ----------------------------------------------------------------
+    local chestThread = nil
+    local function StartChestThread()
+        if chestThread then task.cancel(chestThread) end
+        chestThread = task.spawn(function()
+            while States.Misc.AutoChest do
+                local chests = workspace:FindFirstChild("Chests")
+                if chests and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    for _, chest in ipairs(chests:GetChildren()) do
+                        if not States.Misc.AutoChest then break end
+                        if chest:IsA("Model") and chest.PrimaryPart then
+                            player.Character.HumanoidRootPart.CFrame = chest.PrimaryPart.CFrame + Vector3.new(0,3,0)
+                            task.wait(0.1)
+                        end
+                    end
+                end
+                task.wait(0.2)
+            end
+        end)
+    end
+
+    local chestBtn = Instance.new("TextButton", Content)
+    chestBtn.Size = UDim2.new(1, -20, 0, 30)
+    chestBtn.Text = "Auto Chest: " .. (States.Misc.AutoChest and "ON" or "OFF")
+    chestBtn.BackgroundColor3 = States.Misc.AutoChest and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    chestBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    chestBtn.Font = Enum.Font.GothamBold
+    chestBtn.TextSize = 14
+    Instance.new("UICorner", chestBtn).CornerRadius = UDim.new(0,6)
+
+    chestBtn.MouseButton1Click:Connect(function()
+        States.Misc.AutoChest = not States.Misc.AutoChest
+        chestBtn.Text = "Auto Chest: "..(States.Misc.AutoChest and "ON" or "OFF")
+        chestBtn.BackgroundColor3 = States.Misc.AutoChest and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        if States.Misc.AutoChest then StartChestThread()
+        else if chestThread then task.cancel(chestThread) chestThread = nil end end
+    end)
+
+    ----------------------------------------------------------------
+    -- NOCLIP
+    ----------------------------------------------------------------
+    local noclipBtn = Instance.new("TextButton", Content)
+    noclipBtn.Size = UDim2.new(1, -20, 0, 30)
+    noclipBtn.BackgroundColor3 = States.Misc.Noclip and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    noclipBtn.Text = "Noclip: "..(States.Misc.Noclip and "ON" or "OFF")
+    noclipBtn.Font = Enum.Font.GothamBold
+    noclipBtn.TextSize = 14
+    noclipBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0,6)
+
+    noclipBtn.MouseButton1Click:Connect(function()
+        States.Misc.Noclip = not States.Misc.Noclip
+        noclipBtn.BackgroundColor3 = States.Misc.Noclip and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        noclipBtn.Text = "Noclip: "..(States.Misc.Noclip and "ON" or "OFF")
+    end)
+
+    ----------------------------------------------------------------
+    -- CLICK TP
+    ----------------------------------------------------------------
+    local ctpBtn = Instance.new("TextButton", Content)
+    ctpBtn.Size = UDim2.new(1, -20, 0, 30)
+    ctpBtn.BackgroundColor3 = States.Misc.ClickTP and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    ctpBtn.Text = "ClickTP: "..(States.Misc.ClickTP and "ON" or "OFF")
+    ctpBtn.Font = Enum.Font.GothamBold
+    ctpBtn.TextSize = 14
+    ctpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", ctpBtn).CornerRadius = UDim.new(0,6)
+
+    ctpBtn.MouseButton1Click:Connect(function()
+        States.Misc.ClickTP = not States.Misc.ClickTP
+        ctpBtn.BackgroundColor3 = States.Misc.ClickTP and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        ctpBtn.Text = "ClickTP: "..(States.Misc.ClickTP and "ON" or "OFF")
+    end)
+
+----------------------------------------------------------------
+-- CLICK TP KEYBIND TOGGLE
+----------------------------------------------------------------
+-- ค่า Default = RightControl
+States.Misc.ClickTPKey = States.Misc.ClickTPKey or Enum.KeyCode.RightControl
+local listeningForToggleKey = false
+
+local toggleKeyBtn = Instance.new("TextButton", Content)
+toggleKeyBtn.Size = UDim2.new(1, -20, 0, 30)
+toggleKeyBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+toggleKeyBtn.Text = "Set Toggle Key (Now: "..States.Misc.ClickTPKey.Name..")"
+toggleKeyBtn.Font = Enum.Font.GothamBold
+toggleKeyBtn.TextSize = 14
+toggleKeyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", toggleKeyBtn).CornerRadius = UDim.new(0,6)
+
+-- เวลาเปลี่ยนปุ่ม
+toggleKeyBtn.MouseButton1Click:Connect(function()
+    if listeningForToggleKey then return end
+    listeningForToggleKey = true
+    toggleKeyBtn.Text = "Press any key..."
+    toggleKeyBtn.BackgroundColor3 = Color3.fromRGB(200,170,0)
+
+    local conn
+    conn = UserInputService.InputBegan:Connect(function(input,gp)
+        if gp then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            States.Misc.ClickTPKey = input.KeyCode
+            toggleKeyBtn.Text = "Set Toggle Key (Now: "..States.Misc.ClickTPKey.Name..")"
+            toggleKeyBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+            listeningForToggleKey = false
+            conn:Disconnect()
+        end
+    end)
+end)
+
+-- ฟัง Key ที่เซ็ตไว้ -> Toggle ClickTP
+UserInputService.InputBegan:Connect(function(input,gp)
+    if gp then return end
+    if input.KeyCode == States.Misc.ClickTPKey then
+        States.Misc.ClickTP = not States.Misc.ClickTP
+
+        -- หา Button ของ ClickTP แล้วอัปเดตสี+ข้อความ
+        for _,btn in ipairs(Content:GetChildren()) do
+            if btn:IsA("TextButton") and string.find(btn.Text, "ClickTP") then
+                btn.Text = "ClickTP: "..(States.Misc.ClickTP and "ON" or "OFF")
+                btn.BackgroundColor3 = States.Misc.ClickTP and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+            end
+        end
+    end
+end)
+
+----------------------------------------------------------------
+-- HIP HEIGHT
+----------------------------------------------------------------
+local defaultHipHeight = 0 -- ✅ Roblox default
+
+local hipBtn = Instance.new("TextButton", Content)
+hipBtn.Size = UDim2.new(1, -20, 0, 30)
+hipBtn.BackgroundColor3 = States.Misc.HipHeightEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+hipBtn.Text = "HipHeight: "..(States.Misc.HipHeightEnabled and "ON" or "OFF")
+hipBtn.Font = Enum.Font.GothamBold
+hipBtn.TextSize = 14
+hipBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", hipBtn).CornerRadius = UDim.new(0,6)
+
+hipBtn.MouseButton1Click:Connect(function()
+    States.Misc.HipHeightEnabled = not States.Misc.HipHeightEnabled
+    hipBtn.BackgroundColor3 = States.Misc.HipHeightEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    hipBtn.Text = "HipHeight: "..(States.Misc.HipHeightEnabled and "ON" or "OFF")
+
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        if States.Misc.HipHeightEnabled then
+            hum.HipHeight = States.Misc.HipHeight or defaultHipHeight
+        else
+            hum.HipHeight = defaultHipHeight
+        end
+    end
+end)
+
+CreateStepSlider(Content, 0, {0,2,4,6,8,10,20,30,40,50}, defaultHipHeight, function(v)
+    States.Misc.HipHeight = v
+    if States.Misc.HipHeightEnabled then
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.HipHeight = v end
+    end
+end)
+
+    ----------------------------------------------------------------
+    -- WALK SPEED
+    ----------------------------------------------------------------
+    local wsBtn = Instance.new("TextButton", Content)
+    wsBtn.Size = UDim2.new(1, -20, 0, 30)
+    wsBtn.BackgroundColor3 = States.Misc.WalkSpeedEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    wsBtn.Text = "WalkSpeed: "..(States.Misc.WalkSpeedEnabled and "ON" or "OFF")
+    wsBtn.Font = Enum.Font.GothamBold
+    wsBtn.TextSize = 14
+    wsBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", wsBtn).CornerRadius = UDim.new(0,6)
+
+    wsBtn.MouseButton1Click:Connect(function()
+        States.Misc.WalkSpeedEnabled = not States.Misc.WalkSpeedEnabled
+        wsBtn.BackgroundColor3 = States.Misc.WalkSpeedEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        wsBtn.Text = "WalkSpeed: "..(States.Misc.WalkSpeedEnabled and "ON" or "OFF")
+    end)
+
+    CreateStepSlider(Content, 0, {16,20,30,50,100,150,200}, States.Misc.WalkSpeed, function(v) States.Misc.WalkSpeed = v end)
+
+----------------------------------------------------------------
+-- JUMP POWER
+----------------------------------------------------------------
+local defaultJumpPower = 50
+
+local jpBtn = Instance.new("TextButton", Content)
+jpBtn.Size = UDim2.new(1, -20, 0, 30)
+jpBtn.BackgroundColor3 = States.Misc.JumpEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+jpBtn.Text = "JumpPower: "..(States.Misc.JumpEnabled and "ON" or "OFF")
+jpBtn.Font = Enum.Font.GothamBold
+jpBtn.TextSize = 14
+jpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", jpBtn).CornerRadius = UDim.new(0,6)
+
+jpBtn.MouseButton1Click:Connect(function()
+    States.Misc.JumpEnabled = not States.Misc.JumpEnabled
+    jpBtn.BackgroundColor3 = States.Misc.JumpEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    jpBtn.Text = "JumpPower: "..(States.Misc.JumpEnabled and "ON" or "OFF")
+
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        if States.Misc.JumpEnabled then
+            hum.UseJumpPower = true
+            hum.JumpPower = States.Misc.JumpPower or defaultJumpPower
+        else
+            hum.JumpPower = defaultJumpPower
+        end
+    end
+end)
+
+CreateStepSlider(Content, 0, {50,75,100,125,150,175,200}, defaultJumpPower, function(v)
+    States.Misc.JumpPower = v
+    if States.Misc.JumpEnabled then
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.JumpPower = v end
+    end
+end)
+
+----------------------------------------------------------------
+-- FLIGHT
+----------------------------------------------------------------
+local flyConnection = nil
+
+local flyBtn = Instance.new("TextButton", Content)
+flyBtn.Size = UDim2.new(1, -20, 0, 30)
+flyBtn.Text = "Flight: "..(States.Misc.FlightEnabled and "ON" or "OFF")
+flyBtn.BackgroundColor3 = States.Misc.FlightEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,170)
+flyBtn.TextColor3 = Color3.new(1,1,1)
+flyBtn.Font = Enum.Font.GothamBold
+flyBtn.TextSize = 14
+Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0,6)
+
+flyBtn.MouseButton1Click:Connect(function()
+    States.Misc.FlightEnabled = not States.Misc.FlightEnabled
+    flyBtn.Text = "Flight: "..(States.Misc.FlightEnabled and "ON" or "OFF")
+    flyBtn.BackgroundColor3 = States.Misc.FlightEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,170)
+
+    if States.Misc.FlightEnabled then
+        -- เริ่มบิน
+        if flyConnection then flyConnection:Disconnect() end
+        flyConnection = RunService.RenderStepped:Connect(function()
+            if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+            local hrp = player.Character.HumanoidRootPart
+            local camCF = workspace.CurrentCamera.CFrame
+            local moveDir = Vector3.new()
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += camCF.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= camCF.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= camCF.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += camCF.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0,1,0) end
+
+            if moveDir.Magnitude > 0 then
+                hrp.Velocity = moveDir.Unit * States.Misc.FlightSpeed
+            else
+                hrp.Velocity = Vector3.new(0,0,0)
+            end
+        end)
+    else
+        -- หยุดบิน
+        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+        end
+    end
+end)
+
+CreateStepSlider(Content, 0, {100,200,300,400,500,600,700,800,900,1000}, States.Misc.FlightSpeed, function(v) 
+    States.Misc.FlightSpeed = v 
+end)
+
+end
+-- =====================================================
+
+
+-- =====================================================
+-- GLOBAL STATE FOR FRUIT
+-- =====================================================
+local runningDrink = false
+local runningMix = false
+local autoBarrelThread = nil
+local runningXYZ = false
+local xyzLabel = nil
+
+
+-- หยุดทุกอย่างเวลาออกจาก Fruit Tab
+local function StopFruitThreads()
+    States.Fruit.AutoBarrel = false
+    runningDrink = false
+    runningMix = false
+    if autoBarrelThread then
+        task.cancel(autoBarrelThread)
+        autoBarrelThread = nil
+    end
+end
+
+-- =====================================================
+-- FRUIT TAB (Auto Barrel TP + Flight + Mix + Drink)
+-- =====================================================
+local function LoadFruitTab()
+    if Content:FindFirstChild("FruitLoaded") then return end
+    ClearContent()
+    local marker = Instance.new("BoolValue", Content)
+    marker.Name = "FruitLoaded"
+
+    local TweenService = game:GetService("TweenService")
+    local plr = Players.LocalPlayer
+    local hrp = nil
+    local barrels = workspace:FindFirstChild("Barrels") or workspace:WaitForChild("Barrels")
+
+    ----------------------------------------------------------------
+    -- Default States
+    ----------------------------------------------------------------
+    States.Fruit.BarrelDelay = States.Fruit.BarrelDelay or 0.2
+    States.Fruit.FlightSpeed = States.Fruit.FlightSpeed or 1000
+    States.Fruit.DrinkDelay = States.Fruit.DrinkDelay or 0.2
+
+    ----------------------------------------------------------------
+    -- Barrel blacklist
+    ----------------------------------------------------------------
+    local blacklist = {
+        Vector3.new(1008.186, 215.54, 3340.677),
+        Vector3.new(1008.179, 218.04, 3340.624),
+        Vector3.new(1008.12, 215.04, 3344.699),
+    }
+    local function isBlacklisted(barrelPos)
+        for _, pos in ipairs(blacklist) do
+            if (barrelPos - pos).Magnitude < 2 then return true end
+        end
+        return false
+    end
+
+    ----------------------------------------------------------------
+    -- Auto Barrel (TP)
+    ----------------------------------------------------------------
+    local function StartAutoBarrelTPLoop(barrels)
+        if autoBarrelTPThread then return end
+        autoBarrelTPThread = task.spawn(function()
+            while States.Fruit.AutoBarrelTP do
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    hrp = plr.Character.HumanoidRootPart
+                    for _, b in ipairs(barrels:GetDescendants()) do
+                        if not States.Fruit.AutoBarrelTP then break end
+                        if b:IsA("BasePart") and not isBlacklisted(b.Position) then
+                            local click = b:FindFirstChildOfClass("ClickDetector")
+                            if click then
+                                hrp.CFrame = b.CFrame + Vector3.new(0, 3, 0)
+                                task.wait(0.05)
+                                pcall(function() fireclickdetector(click) end)
+                            end
+                            task.wait(States.Fruit.BarrelDelay or 0.2)
+                        end
+                    end
+                end
+                task.wait()
+            end
+            autoBarrelTPThread = nil
+        end)
+    end
+
+    local barrelTPBtn = Instance.new("TextButton", Content)
+    barrelTPBtn.Size = UDim2.new(1, -20, 0, 40)
+    barrelTPBtn.Text = "Auto Barrel (TP): " .. ((States.Fruit.AutoBarrelTP and "ON") or "OFF")
+    barrelTPBtn.BackgroundColor3 = States.Fruit.AutoBarrelTP and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+    barrelTPBtn.TextColor3 = Color3.new(1,1,1)
+    barrelTPBtn.Font = Enum.Font.GothamBold
+    barrelTPBtn.TextSize = 16
+    Instance.new("UICorner", barrelTPBtn).CornerRadius = UDim.new(0,6)
+
+    barrelTPBtn.MouseButton1Click:Connect(function()
+        States.Fruit.AutoBarrelTP = not States.Fruit.AutoBarrelTP
+        barrelTPBtn.Text = "Auto Barrel (TP): "..(States.Fruit.AutoBarrelTP and "ON" or "OFF")
+        barrelTPBtn.BackgroundColor3 = States.Fruit.AutoBarrelTP and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+        if States.Fruit.AutoBarrelTP then
+            StartAutoBarrelTPLoop(barrels)
+        end
+    end)
+
+    ----------------------------------------------------------------
+    -- Flight function
+    ----------------------------------------------------------------
+    local function flyTo(targetPos, speed)
+        local char = plr.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
+
+        local distance = (targetPos - hrp.Position).Magnitude
+        local time = math.max(0.05, distance / speed)
+        local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos)})
+        tween:Play()
+        tween.Completed:Wait()
+    end
+
+    ----------------------------------------------------------------
+    -- Auto Barrel (Flight)
+    ----------------------------------------------------------------
+    local function StartAutoBarrelFlightLoop(barrels)
+        if autoBarrelFlightThread then return end
+        autoBarrelFlightThread = task.spawn(function()
+            while States.Fruit.AutoBarrelFlight do
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    for _, b in ipairs(barrels:GetDescendants()) do
+                        if not States.Fruit.AutoBarrelFlight then break end
+                        if b:IsA("BasePart") and not isBlacklisted(b.Position) then
+                            local click = b:FindFirstChildOfClass("ClickDetector")
+                            if click then
+                                flyTo(b.Position + Vector3.new(0,3,0), States.Fruit.FlightSpeed)
+                                task.wait(0.1)
+                                pcall(function() fireclickdetector(click) end)
+                            end
+                            task.wait(States.Fruit.BarrelDelay or 0.2)
+                        end
+                    end
+                end
+                task.wait()
+            end
+            autoBarrelFlightThread = nil
+        end)
+    end
+
+    local barrelFlightBtn = Instance.new("TextButton", Content)
+    barrelFlightBtn.Size = UDim2.new(1, -20, 0, 40)
+    barrelFlightBtn.Text = "Auto Barrel (Flight): " .. ((States.Fruit.AutoBarrelFlight and "ON") or "OFF")
+    barrelFlightBtn.BackgroundColor3 = States.Fruit.AutoBarrelFlight and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+    barrelFlightBtn.TextColor3 = Color3.new(1,1,1)
+    barrelFlightBtn.Font = Enum.Font.GothamBold
+    barrelFlightBtn.TextSize = 16
+    Instance.new("UICorner", barrelFlightBtn).CornerRadius = UDim.new(0,6)
+
+    barrelFlightBtn.MouseButton1Click:Connect(function()
+        States.Fruit.AutoBarrelFlight = not States.Fruit.AutoBarrelFlight
+        barrelFlightBtn.Text = "Auto Barrel (Flight): "..(States.Fruit.AutoBarrelFlight and "ON" or "OFF")
+        barrelFlightBtn.BackgroundColor3 = States.Fruit.AutoBarrelFlight and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+        if States.Fruit.AutoBarrelFlight then
+            StartAutoBarrelFlightLoop(barrels)
+        end
+    end)
+
+	----------------------------------------------------------------
+    -- Flight Speed Button (1000, 2500, 5000)
+    ----------------------------------------------------------------
+    local speedSteps = {1000, 2500, 5000}
+    local speedIndex = table.find(speedSteps, States.Fruit.FlightSpeed) or 1
+    States.Fruit.FlightSpeed = speedSteps[speedIndex]
+
+    local speedBtn = Instance.new("TextButton", Content)
+    speedBtn.Size = UDim2.new(1, -20, 0, 30)
+    speedBtn.Text = "Flight Speed: "..States.Fruit.FlightSpeed
+    speedBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+    speedBtn.TextColor3 = Color3.new(1,1,1)
+    speedBtn.Font = Enum.Font.GothamBold
+    speedBtn.TextSize = 14
+    Instance.new("UICorner", speedBtn).CornerRadius = UDim.new(0,6)
+
+    speedBtn.MouseButton1Click:Connect(function()
+        speedIndex = speedIndex % #speedSteps + 1
+        States.Fruit.FlightSpeed = speedSteps[speedIndex]
+        speedBtn.Text = "Flight Speed: "..States.Fruit.FlightSpeed
+    end)
+
+    ----------------------------------------------------------------
+    -- Barrel Delay Button
+    ----------------------------------------------------------------
+    local delaySteps = {0.1,0.2,0.3}
+    local delayIndex = table.find(delaySteps, States.Fruit.BarrelDelay) or 1
+
+    local delayBtn = Instance.new("TextButton", Content)
+    delayBtn.Size = UDim2.new(1, -20, 0, 30)
+    delayBtn.Text = "Barrel Delay: "..States.Fruit.BarrelDelay.."s"
+    delayBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+    delayBtn.TextColor3 = Color3.new(1,1,1)
+    delayBtn.Font = Enum.Font.GothamBold
+    delayBtn.TextSize = 14
+    Instance.new("UICorner", delayBtn).CornerRadius = UDim.new(0,6)
+
+    delayBtn.MouseButton1Click:Connect(function()
+        delayIndex = delayIndex % #delaySteps + 1
+        States.Fruit.BarrelDelay = delaySteps[delayIndex]
+        delayBtn.Text = "Barrel Delay: "..States.Fruit.BarrelDelay.."s"
+    end)
+
+    ----------------------------------------------------------------
+    -- Auto Mix Buttons
+    ----------------------------------------------------------------
+    local function createMixButton(name, targetCFrame)
+        local Button = Instance.new("TextButton", Content)
+        Button.Size = UDim2.new(1, -20, 0, 40)
+        Button.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        Button.Text = name..": OFF"
+        Button.Font = Enum.Font.GothamBold
+        Button.TextSize = 16
+        Button.TextColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", Button).CornerRadius = UDim.new(0,6)
+
+        local function autoTP()
+            while runningMix do
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    plr.Character.HumanoidRootPart.CFrame = targetCFrame
+                end
+                task.wait(0.1)
+            end
+        end
+
+        Button.MouseButton1Click:Connect(function()
+            runningMix = not runningMix
+            Button.Text = name..": "..(runningMix and "ON" or "OFF")
+            Button.BackgroundColor3 = runningMix and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+            if runningMix then task.spawn(autoTP) end
+        end)
+
+        plr.CharacterAdded:Connect(function(char)
+            hrp = char:WaitForChild("HumanoidRootPart")
+            if runningMix then task.spawn(autoTP) end
+        end)
+    end
+
+    createMixButton("TP MIX 1", CFrame.new(1239.4, 224.2, -3254.3))
+    createMixButton("TP MIX 2", CFrame.new(1991.0, 218.0, 564.6))
+
+    ----------------------------------------------------------------
+    -- Auto Drink
+    ----------------------------------------------------------------
+    local function fastDrinkJuice()
+        while States.Fruit.AutoDrink do
+            local backpack = plr:FindFirstChild("Backpack")
+            local char = plr.Character
+            if backpack and char then
+                for _, item in ipairs(backpack:GetChildren()) do
+                    if not States.Fruit.AutoDrink then break end
+                    if item:IsA("Tool") and (string.find(item.Name,"Juice") or string.find(item.Name,"Coconut Milk")) then
+                        item.Parent = char
+                        task.wait(States.Fruit.DrinkDelay or 0.2)
+                        pcall(function()
+                            vim:SendMouseButtonEvent(0,0,0,true,game,0)
+                            vim:SendMouseButtonEvent(0,0,0,false,game,0)
+                        end)
+                        task.wait(States.Fruit.DrinkDelay or 0.2)
+                    end
+                end
+            end
+            task.wait(States.Fruit.DrinkDelay or 0.2)
+        end
+    end
+
+    local drinkBtn = Instance.new("TextButton", Content)
+    drinkBtn.Size = UDim2.new(1, -20, 0, 40)
+    drinkBtn.Text = "Auto Drink: " .. ((States.Fruit.AutoDrink and "ON") or "OFF")
+    drinkBtn.BackgroundColor3 = States.Fruit.AutoDrink and Color3.fromRGB(50,200,100) or Color3.fromRGB(200,100,50)
+    drinkBtn.TextColor3 = Color3.new(1,1,1)
+    drinkBtn.Font = Enum.Font.GothamBold
+    drinkBtn.TextSize = 16
+    Instance.new("UICorner", drinkBtn).CornerRadius = UDim.new(0,6)
+
+    drinkBtn.MouseButton1Click:Connect(function()
+        States.Fruit.AutoDrink = not States.Fruit.AutoDrink
+        drinkBtn.Text = "Auto Drink: "..(States.Fruit.AutoDrink and "ON" or "OFF")
+        drinkBtn.BackgroundColor3 = States.Fruit.AutoDrink and Color3.fromRGB(50,200,100) or Color3.fromRGB(200,100,50)
+        if States.Fruit.AutoDrink then
+            task.spawn(fastDrinkJuice)
+        end
+    end)
+
+    if States.Fruit.AutoDrink then
+        task.spawn(fastDrinkJuice)
+    end
+
+    local drinkDelaySteps = {0.1,0.2,0.3}
+    local drinkDelayIndex = table.find(drinkDelaySteps, States.Fruit.DrinkDelay) or 2
+
+    local drinkDelayBtn = Instance.new("TextButton", Content)
+    drinkDelayBtn.Size = UDim2.new(1, -20, 0, 30)
+    drinkDelayBtn.Text = "Drink Delay: "..States.Fruit.DrinkDelay.."s"
+    drinkDelayBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+    drinkDelayBtn.TextColor3 = Color3.new(1,1,1)
+    drinkDelayBtn.Font = Enum.Font.GothamBold
+    drinkDelayBtn.TextSize = 14
+    Instance.new("UICorner", drinkDelayBtn).CornerRadius = UDim.new(0,6)
+
+    drinkDelayBtn.MouseButton1Click:Connect(function()
+        drinkDelayIndex = drinkDelayIndex % #drinkDelaySteps + 1
+        States.Fruit.DrinkDelay = drinkDelaySteps[drinkDelayIndex]
+        drinkDelayBtn.Text = "Drink Delay: "..States.Fruit.DrinkDelay.."s"
+    end)
+
+    ----------------------------------------------------------------
+    -- Warning labels
+    ----------------------------------------------------------------
+    local warn = Instance.new("TextLabel", Content)
+    warn.Size = UDim2.new(1, -20, 0, 50)
+    warn.BackgroundTransparency = 1
+    warn.Text = "⚠ WARNING: Using Auto Barrel may result in a ban.\nUse Auto Drink & Mix only."
+    warn.TextWrapped = true
+    warn.Font = Enum.Font.GothamBold
+    warn.TextSize = 14
+    warn.TextColor3 = Color3.fromRGB(255,100,100)
+
+    local warnTH = Instance.new("TextLabel", Content)
+    warnTH.Size = UDim2.new(1, -20, 0, 40)
+    warnTH.BackgroundTransparency = 1
+    warnTH.Text = "⚠ คำเตือน: การใช้ Auto Barrel อาจทำให้ถูกแบน\nแนะนำให้ใช้เฉพาะ Auto Drink และ Mix เท่านั้น"
+    warnTH.TextWrapped = true
+    warnTH.Font = Enum.Font.GothamBold
+    warnTH.TextSize = 14
+    warnTH.TextColor3 = Color3.fromRGB(255,150,150)
+    warnTH.Position = UDim2.new(0, 0, 1, -40)
+
+end
+
+
+
+-- ===================== TP TAB ======================
+local function LoadTPTab()
+    ClearContent()
+
+    local plr = Players.LocalPlayer
+
+    -- TP Farm Cave Demon
+    local tpCaveBtn = Instance.new("TextButton", Content)
+    tpCaveBtn.Size = UDim2.new(1, -20, 0, 36)
+    tpCaveBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
+    tpCaveBtn.Text = "TP Farm Cave Demon"
+    tpCaveBtn.Font = Enum.Font.GothamBold
+    tpCaveBtn.TextSize = 14
+    tpCaveBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", tpCaveBtn).CornerRadius = UDim.new(0,6)
+    local farmCaveDemon = CFrame.new(2164.1, 216, -662.9)
+    tpCaveBtn.MouseButton1Click:Connect(function()
+        if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
+        noclipConnection = RunService.Stepped:Connect(function()
+            if player.Character then
+                for _, part in pairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end
+        end)
+        task.wait(0.15)
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = farmCaveDemon
+        else
+        end
+        task.wait(0.2)
+        if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
+    end)
+
+    -- ปุ่ม Show XYZ
+local xyzBtn = Instance.new("TextButton", Content)
+xyzBtn.Size = UDim2.new(1, -20, 0, 30)
+xyzBtn.Text = "Show XYZ: " .. (runningXYZ and "ON" or "OFF")
+xyzBtn.BackgroundColor3 = runningXYZ and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+xyzBtn.TextColor3 = Color3.new(1,1,1)
+xyzBtn.Font = Enum.Font.GothamBold
+xyzBtn.TextSize = 16
+Instance.new("UICorner", xyzBtn).CornerRadius = UDim.new(0,6)
+
+xyzBtn.MouseButton1Click:Connect(function()
+    runningXYZ = not runningXYZ
+    xyzBtn.Text = "Show XYZ: " .. (runningXYZ and "ON" or "OFF")
+    xyzBtn.BackgroundColor3 = runningXYZ and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+
+    if runningXYZ then
+        if not xyzLabel then
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "XYZ_Display"
+            screenGui.Parent = game:GetService("CoreGui")
+
+            xyzLabel = Instance.new("TextLabel")
+            xyzLabel.Size = UDim2.new(0,200,0,50)
+            xyzLabel.Position = UDim2.new(0,20,0,200)
+            xyzLabel.BackgroundTransparency = 0.3
+            xyzLabel.BackgroundColor3 = Color3.fromRGB(0,0,0)
+            xyzLabel.TextColor3 = Color3.new(1,1,1)
+            xyzLabel.TextSize = 16
+            xyzLabel.Font = Enum.Font.GothamBold
+            xyzLabel.Parent = screenGui
+        end
+
+        task.spawn(function()
+            while runningXYZ do
+                local char = plr.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local pos = char.HumanoidRootPart.Position
+                    xyzLabel.Text = string.format("X: %.1f Y: %.1f Z: %.1f", pos.X, pos.Y, pos.Z)
+                end
+                task.wait(0.1)
+            end
+            if xyzLabel then
+                local parent = xyzLabel.Parent
+                xyzLabel:Destroy()
+                xyzLabel = nil
+                if parent and parent:IsA("ScreenGui") then
+                    parent:Destroy()
+                end
+            end
+        end)
+    else
+        if xyzLabel then
+            local parent = xyzLabel.Parent
+            xyzLabel:Destroy()
+            xyzLabel = nil
+            if parent and parent:IsA("ScreenGui") then
+                parent:Destroy()
+            end
+        end
+    end
+end)
+
+
+    -- ฟังก์ชันสร้างปุ่ม TP
+    local function createTPButton(name, cframe)
+        local btn = Instance.new("TextButton", Content)
+        btn.Size = UDim2.new(1, -20, 0, 40)
+        btn.Text = name
+        btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 16
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+
+        btn.MouseButton1Click:Connect(function()
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                plr.Character.HumanoidRootPart.CFrame = cframe
+            end
+        end)
+    end
+
+    -- === จุด TP (12 ปุ่ม) ===
+    createTPButton("TP SAM", CFrame.new(-1302,218,-1352))
+    createTPButton("desert island (sword)", CFrame.new(1231,224,-3242))
+    createTPButton("Pyramid Island (af)", CFrame.new(120,278,4946))
+    createTPButton("Fish-Man Island", CFrame.new(-1693,216,-328))
+    createTPButton("Purple Island", CFrame.new(-5282,534,-7762))
+    createTPButton("Snow Islands Main", CFrame.new(6313,541,-1330))
+    createTPButton("Snow Islands(Gun)", CFrame.new(-1843,222,3406))
+    createTPButton("Krizma Islands", CFrame.new(-1074,361,1671))
+    createTPButton("Bar Islands", CFrame.new(1502,260,2173))
+    createTPButton("Vokun Islands", CFrame.new(4572,217,5059))
+    createTPButton("Treehouse Islands", CFrame.new(1120,217,3351))
+    createTPButton("TP Quest", CFrame.new(898,270,1219))
+    createTPButton("BigTree", CFrame.new(-6029,402,-8.5))
+
+end
+-- ===================================================
+
+
+-- Apply states to player each step (walkspeed/jump/hipheight, noclip)
+RunService.Stepped:Connect(function()
+    -- Noclip
+    if States.Misc.Noclip and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+    -- Apply Humanoid modifications
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        if States.Misc.WalkSpeedEnabled then pcall(function() hum.WalkSpeed = States.Misc.WalkSpeed end) end
+        if States.Misc.JumpEnabled then pcall(function() hum.JumpPower = States.Misc.JumpPower end) end
+        if States.Misc.HipHeightEnabled then pcall(function() hum.HipHeight = States.Misc.HipHeight end) end
+    end
+end)
+
+-- ClickTP mouse binding
+mouse.Button1Down:Connect(function()
+    if States.Misc.ClickTP and mouse.Target and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.p + Vector3.new(0,5,0))
+    end
+end)
+
+-- CharacterAdded: apply misc props and resync flight/autoTP
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        if States.Misc.WalkSpeedEnabled then pcall(function() hum.WalkSpeed = States.Misc.WalkSpeed end) end
+        if States.Misc.JumpEnabled then pcall(function() hum.JumpPower = States.Misc.JumpPower end) end
+        if States.Misc.HipHeightEnabled then pcall(function() hum.HipHeight = States.Misc.HipHeight end) end
+    end
+    -- resync AutoTP hold
+    if States.AutoTP then
+        if autoTPConnection then autoTPConnection:Disconnect(); autoTPConnection = nil end
+        autoTPConnection = RunService.Heartbeat:Connect(function()
+            if not States.AutoTP then
+                if autoTPConnection then autoTPConnection:Disconnect(); autoTPConnection = nil end
+                return
+            end
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    player.Character.HumanoidRootPart.CFrame = SafeZoneCFrame
+                end)
+            end
+        end)
+    end
+end)
+
+-- AutoEquip Watcher (Hotfix)
+local autoEquipThread = nil
+local function StartAutoEquipWatcher()
+    if autoEquipThread then return end
+    autoEquipThread = task.spawn(function()
+        while true do
+            task.wait(1)
+            if States.AutoEquip.Enabled and States.AutoEquip.Weapon then
+                if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+                    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                    local backpack = player:FindFirstChild("Backpack")
+                    if backpack then
+                        local tool = backpack:FindFirstChild(States.AutoEquip.Weapon)
+                        if tool and humanoid and not player.Character:FindFirstChild(States.AutoEquip.Weapon) then
+                            pcall(function() humanoid:EquipTool(tool) end)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+StartAutoEquipWatcher()
+
+-- เก็บปุ่มทุกแท็บไว้ในตาราง
+local TabButtons = {
+    Main = MainBtn,
+    Weapon = WeaponBtn,
+    Player = PlayerBtn,
+    DevilFruit = DevilFruitBtn,
+    Misc = MiscBtn,
+    Drink = DrinkBtn,
+    Teleport = TeleportBtn,
+    Server = ServerBtn,
+}
+
+-- ฟังก์ชันเปลี่ยนสีปุ่ม
+local function SetActiveTab(tabName)
+    for name, btn in pairs(TabButtons) do
+        if name == tabName then
+            btn.BackgroundColor3 = Color3.fromRGB(0,170,255) -- ✅ สีของแท็บที่เลือก
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(40,40,40) -- ปุ่มที่ไม่ถูกเลือก
+        end
+    end
+end
+
+-- แก้ Tab bindings ให้เรียก SetActiveTab ด้วย
+MainBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadMainTab()
+    SetActiveTab("Main")
+end)
+
+WeaponBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadSwordsTab()
+    SetActiveTab("Weapon")
+end)
+
+PlayerBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadPlayerTab()
+    SetActiveTab("Player")
+end)
+
+DevilFruitBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadDevilFruitTab()
+    SetActiveTab("DevilFruit")
+end)
+
+MiscBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadMiscTab()
+    SetActiveTab("Misc")
+end)
+
+DrinkBtn.MouseButton1Click:Connect(function()
+    LoadFruitTab()
+    SetActiveTab("Drink")
+end)
+
+TeleportBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadTPTab()
+    SetActiveTab("Teleport")
+end)
+
+ServerBtn.MouseButton1Click:Connect(function()
+    StopFruitThreads()
+    LoadServerTab()
+    SetActiveTab("Server")
+end)
+
+
+-- ตั้งค่าเริ่มต้น (เปิดมาหน้า Main)
+SetActiveTab("Main")
+
+-- Load default
+LoadMainTab()
+
+
