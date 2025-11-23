@@ -1,0 +1,178 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CHEST_NAME = "Chest"
+local TELEPORT_HEIGHT = 6
+local TELEPORT_DELAY = 0.85
+local CHANGE_POSITION_DELAY = 2 
+local TELEPORT_POSITIONS = {
+    Vector3.new(-1101, 162, -5791),
+    Vector3.new(2123, 120, -3400),
+    Vector3.new(-450, 85, 2600),
+    Vector3.new(3700, 170, -1800),
+}
+
+local root = nil 
+local function createBeriGuiFullScreen()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local screenGui = playerGui:FindFirstChild("BeriDisplay")
+local vipLabel = Instance.new("TextLabel")
+vipLabel.Size = UDim2.new(0, 300, 0, 45)
+vipLabel.AnchorPoint = Vector2.new(0.5, 0)
+vipLabel.Position = UDim2.new(0.5, 0, 0.5, 65) 
+vipLabel.BackgroundColor3 = Color3.fromRGB(0,0,0)
+vipLabel.BorderSizePixel = 2
+vipLabel.BorderColor3 = Color3.fromRGB(255,0,0)
+vipLabel.TextColor3 = Color3.fromRGB(255,0,0)
+vipLabel.Font = Enum.Font.GothamBold
+vipLabel.TextSize = 28
+vipLabel.Text = "HIEN VIP CHEST"
+vipLabel.Parent = background
+
+    if not screenGui then
+        screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "BeriDisplay"
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = playerGui
+        local background = Instance.new("Frame")
+        background.Size = UDim2.new(1, 0, 1, 0) --
+        background.Position = UDim2.new(0, 0, 0, 0)
+        background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        background.BackgroundTransparency = 0 -- đen tuyệt đối
+        background.Parent = screenGui
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0, 400, 0, 60)
+        label.AnchorPoint = Vector2.new(0.5, 0.5)
+        label.Position = UDim2.new(0.5, 0, 0.5, 0) 
+        label.BackgroundTransparency = 1 
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 28
+        label.Text = ".."
+        label.Parent = background
+    end
+    return screenGui:FindFirstChildOfClass("Frame"):FindFirstChildOfClass("TextLabel")
+end
+CurrentBeriLabel = createBeriGuiFullScreen()
+local beriConnection
+local function updateBeri()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local mainUi = playerGui:FindFirstChild("MainUI")
+    if not mainUi then return end
+    local statsFolder = mainUi:FindFirstChild("Stats")
+    if not statsFolder then return end
+
+    -- đảm bảo biến global/local
+local beriConnection = beriConnection -- nếu đã khai báo ở trên; nếu chưa, dùng: local beriConnection
+
+-- kiểm tra CurrentBeriLabel tồn tại, nếu không tạo tạm (bạn nên thay parent cho đúng GUI của bạn)
+if not CurrentBeriLabel or not CurrentBeriLabel:IsA("TextLabel") then
+    -- nếu bạn đã có CurrentBeriLabel trong GUI thì bỏ khối này
+    CurrentBeriLabel = Instance.new("TextLabel")
+    CurrentBeriLabel.Size = UDim2.new(1, 0, 0, 50)
+    CurrentBeriLabel.Position = UDim2.new(0, 0, 0.8, 0)
+    CurrentBeriLabel.BackgroundTransparency = 1
+    CurrentBeriLabel.Font = Enum.Font.GothamBold
+    CurrentBeriLabel.TextScaled = true
+    -- Thay bằng Parent thật sự của bạn, ví dụ: player.PlayerGui:WaitForChild("MainUI")
+    CurrentBeriLabel.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- đảm bảo RichText bật (phải đặt trên TextLabel đã tồn tại)
+CurrentBeriLabel.RichText = true
+
+-- hàm cập nhật an toàn
+local function updateFromObj(obj)
+    if not obj or not obj:IsA("TextLabel") then return end
+    local beriText = obj.Text or ""
+    CurrentBeriLabel.Text = "HIEN VIP CHEST"
+    CurrentBeriLabel.Name = "HIEN VIP CHEST"
+end
+
+-- vòng lặp chính: gắn cho những label có "beri"
+for _, obj in ipairs(statsFolder:GetDescendants()) do
+    if obj:IsA("TextLabel") and tostring(obj.Text):lower():match("beri") then
+        -- cập nhật ngay
+        updateFromObj(obj)
+
+        -- kết nối sự kiện để update khi obj.Text thay đổi
+        if not beriConnection then
+            beriConnection = obj:GetPropertyChangedSignal("Text"):Connect(function()
+                updateFromObj(obj)
+            end)
+        end
+    end
+end
+
+local function teleportTo(target)
+    if not target or not root then return end
+    local pos
+    if target:IsA("BasePart") then
+        pos = target.Position
+    elseif target:IsA("Model") and target.PrimaryPart then
+        pos = target.PrimaryPart.Position
+    end
+    if pos then
+        root.CFrame = CFrame.new(pos + Vector3.new(0, TELEPORT_HEIGHT, 0))
+        task.wait(TELEPORT_DELAY)
+    end
+end
+
+--// NHẶT CHEST XUNG QUANH
+local function collectChests()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    while char.Parent do
+        local chestParts = {}
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == CHEST_NAME then
+                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if part then table.insert(chestParts, part) end
+            end
+        end
+
+    
+        table.sort(chestParts, function(a, b)
+            return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
+        end)
+
+        
+        for _, part in ipairs(chestParts) do
+            if hrp.Parent then
+                teleportTo(part)
+            end
+        end
+
+        task.wait(0.1)
+    end
+end
+
+
+local function autoTeleportLoop()
+    local index = 1
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    root = char:WaitForChild("HumanoidRootPart")
+
+    while char.Parent do
+        local targetPos = TELEPORT_POSITIONS[index]
+        if targetPos then
+            root.CFrame = CFrame.new(targetPos + Vector3.new(0, TELEPORT_HEIGHT, 0))
+        end
+
+        index = index + 1
+        if index > #TELEPORT_POSITIONS then index = 1 end
+        task.wait(CHANGE_POSITION_DELAY)
+    end
+end
+
+
+local function onCharacterAdded(char)
+    task.spawn(updateBeri)
+    task.spawn(collectChests)
+    task.spawn(autoTeleportLoop)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
+task.wait(30)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/cthanh137/s-ss/refs/heads/main/hoppr.lua"))()
