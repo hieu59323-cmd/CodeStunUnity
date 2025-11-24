@@ -1,0 +1,177 @@
+--== FULL SCRIPT TỐI ƯU (GUI + CHE MÀN + NHẶT CHEST NHANH) ==--
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local CHEST_NAME = "Chest"
+local TELEPORT_HEIGHT = 6
+local TELEPORT_DELAY = 0.05 -- tốc độ B bạn yêu cầu
+local CHANGE_POSITION_DELAY = 2
+
+local TELEPORT_POSITIONS = {
+    Vector3.new(-1101, 162, -5791),
+    Vector3.new(2123, 120, -3400),
+    Vector3.new(-450, 85, 2600),
+    Vector3.new(3700, 170, -1800),
+}
+
+local root = nil
+
+--------------------------------------------------------------------
+-- GUI FULL BLACK + TEXT CHEST
+--------------------------------------------------------------------
+
+local function createGui()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+    local old = playerGui:FindFirstChild("BeriDisplay")
+    if old then old:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "BeriDisplay"
+    gui.ResetOnSpawn = false
+    gui.Parent = playerGui
+
+    local background = Instance.new("Frame")
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.BackgroundColor3 = Color3.new(0, 0, 0)
+    background.BackgroundTransparency = 0
+    background.Parent = gui
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(0, 380, 0, 45)
+    text.AnchorPoint = Vector2.new(0.5, 0.5)
+    text.Position = UDim2.new(0.5, 0, 0.9, 0)  -- NHỎ GỌN + HIỆN ĐẦY ĐỦ
+    text.BackgroundTransparency = 1
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 28
+    text.TextColor3 = Color3.fromRGB(255, 0, 0)
+    text.Text = "CHEST: ..."
+    text.Parent = background
+
+    return text
+end
+
+local ChestLabel = createGui()
+
+--------------------------------------------------------------------
+-- UPDATE BERİ
+--------------------------------------------------------------------
+
+local updated = false
+
+local function updateBeri()
+    if updated then return end
+    updated = true
+
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local mainUi = playerGui:WaitForChild("MainUI", 10)
+    if not mainUi then return end
+
+    local stats = mainUi:FindFirstChild("Stats")
+    if not stats then return end
+
+    for _, v in ipairs(stats:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Text:lower():match("beri") then
+            ChestLabel.Text = "CHEST: " .. v.Text
+
+            v:GetPropertyChangedSignal("Text"):Connect(function()
+                ChestLabel.Text = "CHEST: " .. v.Text
+            end)
+        end
+    end
+end
+
+--------------------------------------------------------------------
+-- TELEPORT FUNCTION
+--------------------------------------------------------------------
+
+local function teleportTo(target)
+    if not target or not root then return end
+
+    local pos = nil
+    if target:IsA("BasePart") then
+        pos = target.Position
+    elseif target:IsA("Model") and target.PrimaryPart then
+        pos = target.PrimaryPart.Position
+    end
+
+    if pos then
+        root.CFrame = CFrame.new(pos + Vector3.new(0, TELEPORT_HEIGHT, 0))
+        task.wait(TELEPORT_DELAY)
+    end
+end
+
+--------------------------------------------------------------------
+-- NHẶT CHEST NHANH
+--------------------------------------------------------------------
+
+local function collectChests()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    while true do
+        local found = {}
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == CHEST_NAME then
+                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if part then table.insert(found, part) end
+            end
+        end
+
+        table.sort(found, function(a, b)
+            return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
+        end)
+
+        for _, part in ipairs(found) do
+            teleportTo(part)
+        end
+
+        task.wait(0.05) -- nhanh B
+    end
+end
+
+--------------------------------------------------------------------
+-- AUTO DI CHUYỂN QUANH MAP
+--------------------------------------------------------------------
+
+local function autoTeleportLoop()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    root = char:WaitForChild("HumanoidRootPart")
+
+    local index = 1
+
+    while true do
+        local pos = TELEPORT_POSITIONS[index]
+        if pos then
+            root.CFrame = CFrame.new(pos + Vector3.new(0, TELEPORT_HEIGHT, 0))
+        end
+
+        index = index + 1
+        if index > #TELEPORT_POSITIONS then index = 1 end
+
+        task.wait(CHANGE_POSITION_DELAY)
+    end
+end
+
+--------------------------------------------------------------------
+-- KHI NHÂN VẬT LOAD
+--------------------------------------------------------------------
+
+local function onCharacterAdded(char)
+    task.wait(1)
+    task.spawn(updateBeri)
+    task.spawn(collectChests)
+    task.spawn(autoTeleportLoop)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
+
+--------------------------------------------------------------------
+-- LOAD SCRIPT CUỐI
+--------------------------------------------------------------------
+
+task.wait(30)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/cthanh137/s-ss/refs/heads/main/hoppr.lua"))()
