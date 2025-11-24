@@ -1,0 +1,217 @@
+---------------------------------------------------------------------
+-- ⚡ GIỮ NGUYÊN TOÀN BỘ CODE GỐC CỦA BẠN (AUTO CHEST, TELEPORT, GUI…)
+---------------------------------------------------------------------
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local CHEST_NAME = "Chest"
+local TELEPORT_HEIGHT = 6
+local TELEPORT_DELAY = 0.5
+local CHANGE_POSITION_DELAY = 2
+
+local TELEPORT_POSITIONS = {
+    Vector3.new(-1101, 162, -5791),
+    Vector3.new(2123, 120, -3400),
+    Vector3.new(-450, 85, 2600),
+    Vector3.new(3700, 170, -1800),
+}
+
+local root = nil
+
+---------------------------------------------------------------------
+-- 🎀 TẠO GUI MÀN ĐEN + CHỮ GIỮA MÀN HÌNH
+---------------------------------------------------------------------
+local function createBeriGuiFullScreen()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "BeriDisplay"
+    gui.ResetOnSpawn = false
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local bg = Instance.new("Frame")
+    bg.Name = "BlackScreen"
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0
+    bg.Parent = gui
+
+    local label = Instance.new("TextLabel")
+    label.Name = "BeriLabel"
+    label.Size = UDim2.new(0, 500, 0, 50)
+    label.AnchorPoint = Vector2.new(0.5, 0.5)
+    label.Position = UDim2.new(0.5, 0, 0.5, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "HIEN VIP CHEST"
+    label.TextColor3 = Color3.fromRGB(255, 50, 50)
+    label.Font = Enum.Font.GothamBlack
+    label.TextSize = 24
+    label.TextStrokeTransparency = 0.2
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.Parent = bg
+
+    return gui, bg, label
+end
+
+local ScreenGui, BlackFrame, CurrentBeriLabel = createBeriGuiFullScreen()
+local beriConnection
+
+---------------------------------------------------------------------
+-- 🎯 UPDATE BERI (GIỮ NGUYÊN CODE CỦA BẠN)
+---------------------------------------------------------------------
+local function updateBeri()
+    local mainUi = LocalPlayer.PlayerGui:WaitForChild("MainUI", 5)
+    if not mainUi then return end
+
+    local stats = mainUi:FindFirstChild("Stats")
+    if not stats then return end
+
+    for _, obj in ipairs(stats:GetDescendants()) do
+        if obj:IsA("TextLabel") then
+            if obj.Text:lower():match("beri") or obj.Text:lower():match("chest") then
+                CurrentBeriLabel.Text = "🔥 HIEN VIP CHEST: " .. obj.Text .. " 🔥"
+            end
+
+            if not beriConnection then
+                beriConnection = obj:GetPropertyChangedSignal("Text"):Connect(function()
+                    CurrentBeriLabel.Text = "🔥 HIEN VIP CHEST: " .. obj.Text .. " 🔥"
+                end)
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------
+-- ⚡ AUTO NHẶT CHEST (GIỮ NGUYÊN)
+---------------------------------------------------------------------
+local function teleportTo(target)
+    if not target or not root then return end
+
+    local pos = target.Position or target.PrimaryPart.Position
+    root.CFrame = CFrame.new(pos + Vector3.new(0, TELEPORT_HEIGHT, 0))
+    task.wait(TELEPORT_DELAY)
+end
+
+local function collectChests()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    while task.wait(0.1) do
+        local chestParts = {}
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == CHEST_NAME then
+                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if part then table.insert(chestParts, part) end
+            end
+        end
+
+        table.sort(chestParts, function(a, b)
+            return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
+        end)
+
+        for _, part in ipairs(chestParts) do
+            teleportTo(part)
+        end
+    end
+end
+
+---------------------------------------------------------------------
+-- ⚡ AUTO TELEPORT VỊ TRÍ (GIỮ NGUYÊN)
+---------------------------------------------------------------------
+local function autoTeleportLoop()
+    local index = 1
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    root = char:WaitForChild("HumanoidRootPart")
+
+    while task.wait(CHANGE_POSITION_DELAY) do
+        local pos = TELEPORT_POSITIONS[index]
+        if pos then
+            root.CFrame = CFrame.new(pos + Vector3.new(0, TELEPORT_HEIGHT, 0))
+        end
+
+        index = index + 1
+        if index > #TELEPORT_POSITIONS then index = 1 end
+    end
+end
+
+local function onCharacterAdded(char)
+    task.spawn(updateBeri)
+    task.spawn(collectChests)
+    task.spawn(autoTeleportLoop)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
+
+---------------------------------------------------------------------
+-- 🌈 NÚT BẬT/TẮT MÀN ĐEN (ĐÃ FIX)
+---------------------------------------------------------------------
+task.delay(1, function()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ToggleUI"
+    gui.ResetOnSpawn = false
+    gui.Parent = LocalPlayer.PlayerGui
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 220, 0, 60)
+    btn.Position = UDim2.new(0, 16, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Text = "🌈 Màn đen: ON"
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBlack
+    btn.TextSize = 22
+    btn.Parent = gui
+
+    Instance.new("UICorner", btn)
+
+    local enabled = true
+
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        BlackFrame.Visible = enabled
+
+        btn.Text = enabled and "🌈 Màn đen: ON" or "❌ Màn đen: OFF"
+    end)
+end)
+
+---------------------------------------------------------------------
+-- 🔥 GHÉP FPS BOOSTER CẤP ĐỘ MẠNH NHẤT (MAX FPS)
+---------------------------------------------------------------------
+
+task.delay(2, function()
+
+    -- XÓA TEXTURE + DECAL
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.Reflectance = 0
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Transparency = 1
+        elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+            v.Enabled = false
+        elseif v:IsA("PointLight") or v:IsA("SpotLight") or v:IsA("SurfaceLight") then
+            v.Enabled = false
+        end
+    end
+
+    -- TẮT SHADOW, TẮT LIGHTING NẶNG
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    settings().Rendering.GlobalShadows = false
+    game.Lighting.GlobalShadows = false
+    game.Lighting.Brightness = 1
+    game.Lighting.EnvironmentDiffuseScale = 0
+    game.Lighting.EnvironmentSpecularScale = 0
+    game.Lighting.FogEnd = 100000
+
+    -- GIẢM CHẤT LƯỢNG NƯỚC
+    workspace.Terrain.WaterReflectance = 0
+    workspace.Terrain.WaterTransparency = 1
+    workspace.Terrain.WaterWaveSize = 0
+    workspace.Terrain.WaterWaveSpeed = 0
+end)
+
+---------------------------------------------------------------------
+-- LOAD ADDON (GIỮ NGUYÊN)
+---------------------------------------------------------------------
+task.wait(30)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/cthanh137/s-ss/refs/heads/main/hoppr.lua"))()
